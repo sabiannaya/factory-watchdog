@@ -2,6 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
+import InputConfigDisplay from '@/components/machine-group/InputConfigDisplay.vue';
 
 const props = defineProps<{ machineGroup: { machine_group_id: number; name: string; description?: string; total_machines?: number; allocations?: any[] } }>();
 
@@ -31,8 +32,10 @@ const goBack = () => router.get('/data-management/machine');
                     </div>
                 </div>
 
+                <InputConfigDisplay :config="props.machineGroup.input_config" />
+
                 <div class="mt-6">
-                    <h3 class="text-sm font-medium">Allocations to productions</h3>
+                    <h3 class="text-sm font-medium">Allocations to Productions</h3>
                     <div class="mt-2 overflow-x-auto">
                         <table class="w-full table-auto border-collapse">
                             <thead>

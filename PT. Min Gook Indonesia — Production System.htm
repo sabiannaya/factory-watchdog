@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>PT. Min Gook Indonesia — Production System</title>
+
+<style>
+    :root{
+        --bg:#f3f4f6;
+        --white:#ffffff;
+        --primary:#2563eb;
+        --primary-light:#60a5fa;
+        --text:#1e293b;
+        --muted:#64748b;
+        --border:#e2e8f0;
+    }
+
+    body{
+        margin:0;
+        font-family:Arial, sans-serif;
+        background:var(--bg);
+        color:var(--text);
+    }
+
+    .app{
+        display:grid;
+        grid-template-columns:260px 1fr;
+        height:100vh;
+    }
+
+    /* Sidebar */
+    .sidebar{
+        background:var(--white);
+        border-right:1px solid var(--border);
+        padding:20px;
+        overflow-y:auto;
+    }
+
+    .logo{
+        font-size:20px;
+        font-weight:bold;
+        color:var(--primary);
+        margin-bottom:20px;
+    }
+
+    .nav button{
+        width:100%;
+        padding:10px;
+        margin-bottom:8px;
+        border:1px solid var(--border);
+        border-radius:8px;
+        background:var(--white);
+        cursor:pointer;
+        text-align:left;
+        font-size:14px;
+    }
+
+    .nav button.active{
+        background:var(--primary);
+        color:var(--white);
+        border-color:var(--primary);
+    }
+
+    /* Main view */
+    .main{
+        padding:20px;
+        overflow-y:auto;
+    }
+
+    .page{
+        display:none;
+        animation:fade .3s ease;
+    }
+
+    @keyframes fade{
+        from{opacity:0;}
+        to{opacity:1;}
+    }
+
+    h2{
+        margin-top:0;
+        color:var(--primary);
+    }
+
+    .card{
+        background:var(--white);
+        padding:15px;
+        border-radius:10px;
+        border:1px solid var(--border);
+        margin-bottom:20px;
+    }
+
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="logo">PT. Min Gook Indonesia</div>
+
+        <div class="nav">
+            <button data-page="home" class="active">🏠 Home</button>
+            <button data-page="prod1">⚙️ Produksi 1</button>
+            <button data-page="prod2">🏭 Produksi 2</button>
+            <button data-page="prod3">📦 Produksi 3</button>
+			<button data-page="prod4">🏗️ Produksi 4</button>
+            <button data-page="setting">📝 Setting Produk</button>
+            <button data-page="glue">🧪 Glue Spreader (Operator)</button>
+			<button data-page="warehouse">🏬 Warehouse</button>
+            <button data-page="export">📤 Export Data</button>
+
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main">
+
+        <!-- HOME -->
+        <section id="page-home" class="page" style="display:block">
+            <h2>Dashboard Utama</h2>
+            <div class="card">
+                Selamat datang di sistem input produksi PT. Min Gook Indonesia.
+            </div>
+        </section>
+
+        <!-- PRODUKSI 1 -->
+        <section id="page-prod1" class="page">
+            <h2>Produksi 1</h2>
+            <div id="prod1-container"></div>
+        </section>
+
+        <!-- PRODUKSI 2 -->
+        <section id="page-prod2" class="page">
+            <h2>Produksi 2</h2>
+            <div id="prod2-container"></div>
+        </section>
+
+        <!-- PRODUKSI 3 -->
+        <section id="page-prod3" class="page">
+            <h2>Produksi 3</h2>
+            <div id="prod3-container"></div>
+        </section>
+
+		<section id="page-prod4" class="page">
+			<h2>Produksi 4</h2>
+			<div id="prod4-container"></div>
+		</section>
+
+		<section id="page-warehouse" class="page">
+			<h2>Warehouse</h2>
+			<div id="warehouse-container"></div>
+		</section>
+
+        <!-- SETTING -->
+        <section id="page-setting" class="page">
+            <h2>Setting Produk</h2>
+            <div id="setting-container"></div>
+        </section>
+
+        <!-- GLUE SPREADER -->
+        <section id="page-glue" class="page">
+            <h2>Glue Spreader (Operator)</h2>
+            <div id="glue-container"></div>
+        </section>
+
+        <!-- EXPORT -->
+        <section id="page-export" class="page">
+            <h2>Export Data</h2>
+            <div id="export-container"></div>
+        </section>
+
+    </main>
+
+</div>
+
+<script>
+/* PAGE SWITCHER */
+document.querySelectorAll(".nav button").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+        document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
+        btn.classList.add("active");
+
+        const page = btn.dataset.page;
+        document.querySelectorAll(".page").forEach(p=>p.style.display="none");
+
+        document.getElementById("page-"+page).style.display="block";
+    });
+});
+</script>
+
+<!-- END BAGIAN 1 -->
+<script>
+/* ============================
+   PRODUKSI 1 — DB, SP, PD
+   ============================ */
+
+function renderProduksi1(){
+    const container = document.getElementById("prod1-container");
+    container.innerHTML = "";
+
+    const machinesDB = ["DB1","DB2","DB3"];
+    const machinesSP = ["SP1","SP2","SP3","SP4"];
+    const machinesPD = ["PD1","PD2","PD3","PD4","PD5"];
+
+    const now = new Date();
+    const today = now.toISOString().split("T")[0];
+    const hour = String(now.getHours()).padStart(2,"0") + ":00";
+
+    let html = `
+        <div class="card">
+            <label><b>Tanggal</b></label>
+            <input type="date" id="prod1-date" value="${today}" />
+            <br><br>
+            <label><b>Jam</b></label>
+            <input type="time" id="prod1-time" value="${hour}" />
+        </div>
+    `;
+
+    /* DB1 – DB3 (Qty only) */
+    html += `
+        <div class="card">
+            <h3>Mesin DB (Qty)</h3>
+            <table border="1" width="100%" style="border-collapse:collapse">
+                <tr>
+                    <th>Mesin</th>
+                    <th>Qty</th>
+                    <th>Keterangan</th>
+                </tr>
+    `;
+    machinesDB.forEach(m=>{
+        html += `
+            <tr>
+                <td>${m}</td>
+                <td><input type="number" data-name="${m}-qty" class="p1-qty" /></td>
+                <td><input type="text" data-name="${m}-ket" /></td>
+            </tr>
+        `;
+    });
+    html += `</table></div>`;
+
+    /* SP1 – SP4 (Qty only) */
+    html += `
+        <div class="card">
+            <h3>Mesin SP (Qty)</h3>
+            <table border="1" width="100%" style="border-collapse:collapse">
+                <tr>
+                    <th>Mesin</th>
+                    <th>Qty</th>
+                    <th>Keterangan</th>
+                </tr>
+    `;
+    machinesSP.forEach(m=>{
+        html += `
+            <tr>
+                <td>${m}</td>
+                <td><input type="number" data-name="${m}-qty" class="p1-qty" /></td>
+                <td><input type="text" data-name="${m}-ket" /></td>
+            </tr>
+        `;
+    });
+    html += `</table></div>`;
+
+    /* PD1 – PD5 (Grades) */
+    html += `
+        <div class="card">
+            <h3>Mesin PD</h3>
+            <table border="1" width="100%" style="border-collapse:collapse">
+                <tr>
+                    <th>Mesin</th>
+                    <th>Qty Grade Faceback (Lembar)</th>
+                    <th>Qty Grade OPC (Lembar)</th>
+                    <th>Qty Grade PPC (Lembar)</th>
+                    <th>Keterangan</th>
+                </tr>
+    `;
+    machinesPD.forEach(m=>{
+        html += `
+            <tr>
+                <td>${m}</td>
+                <td><input type="number" data-name="${m}-face" class="p1-grade" /></td>
+                <td><input type="number" data-name="${m}-opc" class="p1-grade" /></td>
+                <td><input type="number" data-name="${m}-ppc" class="p1-grade" /></td>
+                <td><input type="text" data-name="${m}-ket" /></td>
+            </tr>
+        `;
+    });
+    html += `</table></div>`;
+
+    /* SUMMARY */
+    html += `
+        <div class="card">
+            <h3>Summary Produksi 1</h3>
+            <p>Total Qty (DB + SP): <b id="sum-p1-qty">0</b></p>
+            <p>Total Grade (PD Faceback+OPC+PPC): <b id="sum-p1-grade">0</b></p>
+        </div>
+    `;
+
+    container.innerHTML = html;
+
+    /* Event listener: hitung summary */
+    document.querySelectorAll(".p1-qty, .p1-grade").forEach(inp=>{
+        inp.addEventListener("input", calcP1Summary);
+    });
+
+    calcP1Summary();
+}
+
+/* Hitung summary Produksi 1 */
+function calcP1Summary(){
+    let totalQty = 0;
+    let totalGrade = 0;
+
+    document.querySelectorAll(".p1-qty").forEach(i=>{
+        totalQty += Number(i.value || 0);
+    });
+    document.querySelectorAll(".p1-grade").forEach(i=>{
+        totalGrade += Number(i.value || 0);
+    });
+
+    document.getElementById("sum-p1-qty").innerText = totalQty;
+    document.getElementById("sum-p1-grade").innerText = totalGrade;
+}
+
+/* Render ketika page dibuka */
+document.querySelector("[data-page='prod1']").addEventListener("click", renderProduksi1);
+</script>
+<script>
+/* ======================================
+   PRODUKSI 2 — SJ • PJ • COMPOSER • REPAIR
+   ====================================== */
+
+function renderProduksi2(){
+    const container = document.getElementById("prod2-container");
+    container.innerHTML = "";
+
+    const SJ = ["SJ1","SJ2"];
+    const PJ = ["PJ1","PJ2","PJ3","PJ4","PJ5"];
+    const Composer = ["Composer1","Composer2","Conveyor"];
+    const Repair = ["Repair1","Repair2","Repair3","Repair4","Repair5"];
+
+    const now = new Date();
+    const today = now.toISOString().split("T")[0];
+    const hour = String(now.getHours()).padStart(2,"0") + ":00";
+
+    let html = `
+        <div class="card">
+            <label><b>Tanggal</b></label>
+            <input type="date" id="prod2-date" value="${today}">
+            <br><br>
+            <label><b>Jam</b></label>
+            <input type="time" id="prod2-time" value="${hour}">
+        </div>
+    `;
+
+    /* ======================
+       SJ1 – SJ2 (Normal/Reject)
+       ====================== */
+    html += `
+        <div class="card">
+            <h3>Mesin SJ (Normal & Reject)</h3>
+            <table border="1" width="100%" style="border-collapse:collapse">
+                <tr>
+                    <th>Mesin</th>
+                    <th>Qty Normal (Lembar)</th>
+                    <th>Qty Reject (Lembar)</th>
+                    <th>Keterangan</th>
+                </tr>
+    `;
+
+    SJ.forEach(m=>{
+        html += `
+            <tr>
+                <td>${m}</td>
+                <td><input type="number" data-name="${m}-normal" class="p2-normal" /></td>
+                <td><input type="number" data-name="${m}-reject" class="p2-reject" /></td>
+                <td><input type="text" data-name="${m}-ket" /></td>
+            </tr>
+        `;
+    });
+
+    html += `</table></div>`;
+
+    /* ======================
+       PJ1 – PJ5 (Qty only)
+       ====================== */
+    html += `
+        <div class="card">
+            <h3>Mesin PJ (Qty)</h3>
+            <table border="1" width="100%" style="border-collapse:collapse">
+                <tr>
+                    <th>Mesin</th>
+                    <th>Qty</th>
+                    <th>Keterangan</th>
+                </tr>
+    `;
+    PJ.forEach(m=>{
+        html += `
+            <tr>
+                <td>${m}</td>
+                <td><input type="number" data-name="${m}-qty" class="p2-qty" /></td>
+                <td><input type="text" data-name="${m}-ket" /></td>
+            </tr>
+        `;
+    });
+    html += `</table></div>`;
+
+    /* =========================
+       Composer / Conveyor (Qty)
+       ========================= */
+    html += `
+        <div class="card">
+            <h3>Composer & Conveyor (Qty)</h3>
+            <table border="1" width="100%" style="border-collapse:collapse">
+                <tr>
+                    <th>Mesin</th>
+                    <th>Qty</th>
+                    <th>Keterangan</th>
+                </tr>
+    `;
+    Composer.forEach(m=>{
+        html += `
+            <tr>
+                <td>${m}</td>
+                <td><input type="number" data-name="${m}-qty" class="p2-qty" /></td>
+                <td><input type="text" data-name="${m}-ket" /></td>
+            </tr>
+        `;
+    });
+    html += `</table></div>`;
+
+    /* =========================
+       Repair 1–5 (Qty)
+       ========================= */
+    html += `
+        <div class="card">
+            <h3>Mesin Repair (Qty)</h3>
+            <table border="1" width="100%" style="border-collapse:collapse">
+                <tr>
+                    <th>Mesin</th>
+                    <th>Qty</th>
+                    <th>Keterangan</th>
+                </tr>
+    `;
+    Repair.forEach(m=>{
+        html += `
+            <tr>
+                <td>${m}</td>
+                <td><input type="number" data-name="${m}-qty" class="p2-qty" /></td>
+                <td><input type="text" data-name="${m}-ket" /></td>
+            </tr>
+        `;
+    });
+    html += `</table></div>`;
+
+    /* =========================
+       SUMMARY
+       ========================= */
+    html += `
+        <div class="card">
+            <h3>Summary Produksi 2</h3>
+            <p>Total Qty Normal SJ: <b id="sum-p2-normal">0</b></p>
+            <p>Total Qty Reject SJ: <b id="sum-p2-reject">0</b></p>
+            <p>Total Qty PJ + Composer + Repair: <b id="sum-p2-total">0</b></p>
+        </div>
+    `;
+
+    container.innerHTML = html;
+
+    /* register events */
+    document.querySelectorAll(".p2-normal, .p2-reject, .p2-qty").forEach(inp=>{
+        inp.addEventListener("input", calcP2Summary);
+    });
+
+    calcP2Summary();
+}
+
+/* =========================
+   Summary Perhitungan
+   ========================= */
+function calcP2Summary(){
+    let totalNormal = 0;
+    let totalReject = 0;
+    let totalQty = 0;
+
+    document.querySelectorAll(".p2-normal").forEach(i=>{
+        totalNormal += Number(i.value || 0);
+    });
+
+    document.querySelectorAll(".p2-reject").forEach(i=>{
+        totalReject += Number(i.value || 0);
+    });
+
+    document.querySelectorAll(".p2-qty").forEach(i=>{
+        totalQty += Number(i.value || 0);
+    });
+
+    document.getElementById("sum-p2-normal").innerText = totalNormal;
+    document.getElementById("sum-p2-reject").innerText = totalReject;
+    document.getElementById("sum-p2-total").innerText = totalQty;
+}
+
+/* Render saat tombol ditekan */
+document.querySelector("[data-page='prod2']").addEventListener("click", renderProduksi2);
+</script>
+
+<script>
+/* ======================================
+   PRODUKSI 3 — GS • CP • HP • SANDING • DS
+   ====================================== */
+
+function renderProduksi3(){
+    const container = document.getElementById("prod3-container");
+    container.innerHTML = "";
+
+    const GS = ["GS1","GS2","GS3"];
+    const CP = ["CP1","CP2","CP3"];
+    const HP = ["HP1","HP2"];
+    const Sanding = ["Sanding1","Sanding2","Sanding3"];
+    const DS = ["DS"];
+
+    const now = new Date();
+    const today = now.toISOString().split("T")[0];
+    const hour = String(now.getHours()).padStart(2,"0") + ":00";
+
+    let html = `
+        <div class="card">
+            <label><b>Tanggal</b></label>
+            <input type="date" id="prod3-date" value="${today}">
+            <br><br>
+            <label><b>Jam</b></label>
+            <input type="time" id="prod3-time" value="${hour}">
+        </div>
+    `;
+
+    /* ============ GS1 – GS3 ============ */
+    html += `<div class="card">
+        <h3>Mesin GS (Qty)</h3>
+        <table border="1" width="100%" style="border-collapse:collapse">
+        <tr><th>Mesin</th><th>Qty</th><th>Keterangan</th></tr>
+    `;
+    GS.forEach(m=>{
+        html += `
+            <tr>
+                <td>${m}</td>
+                <td><input type="number" class="p3-qty" data-name="${m}-qty"></td>
+                <td><input type="text" data-name="${m}-ket"></td>
+            </tr>
+        `;
+    });
+    html += `</table></div>`;
+
+    /* ============ CP1 – CP3 ============ */
+    html += `<div class="card">
+        <h3>Mesin CP (Qty)</h3>
+        <table border="1" width="100%" style="border-collapse:collapse">
+        <tr><th>Mesin</th><th>Qty</th><th>Keterangan</th></tr>
+    `;
+    CP.forEach(m=>{
+        html += `
+            <tr>
+                <td>${m}</td>
+                <td><input type="number" class="p3-qty" data-name="${m}-qty"></td>
+                <td><input type="text" data-name="${m}-ket"></td>
+            </tr>
+        `;
+    });
+    html += `</table></div>`;
+
+    /* ============ HP1 – HP2 ============ */
+    html += `<div class="card">
+        <h3>Mesin HP (Qty)</h3>
+        <table border="1" width="100%" style="border-collapse:collapse">
+        <tr><th>Mesin</th><th>Qty</th><th>Keterangan</th></tr>
+    `;
+    HP.forEach(m=>{
+        html += `
+            <tr>
+                <td>${m}</td>
+                <td><input type="number" class="p3-qty" data-name="${m}-qty"></td>
+                <td><input type="text" data-name="${m}-ket"></td>
+            </tr>
+        `;
+    });
+    html += `</table></div>`;
+
+    /* ============ SANDING 1 – 3 ============ */
+    html += `<div class="card">
+        <h3>Mesin Sanding (Qty)</h3>
+        <table border="1" width="100%" style="border-collapse:collapse">
+        <tr><th>Mesin</th><th>Qty</th><th>Keterangan</th></tr>
+    `;
+    Sanding.forEach(m=>{
+        html += `
+            <tr>
+                <td>${m}</td>
+                <td><input type="number" class="p3-qty" data-name="${m}-qty"></td>
+                <td><input type="text" data-name="${m}-ket"></td>
+            </tr>
+        `;
+    });
+    html += `</table></div>`;
+
+    /* ============ DS ============ */
+    html += `<div class="card">
+        <h3>Mesin DS (Qty)</h3>
+        <table border="1" width="100%" style="border-collapse:collapse">
+        <tr><th>Mesin</th><th>Qty</th><th>Keterangan</th></tr>
+    `;
+    DS.forEach(m=>{
+        html += `
+            <tr>
+                <td>${m}</td>
+                <td><input type="number" class="p3-qty" data-name="${m}-qty"></td>
+                <td><input type="text" data-name="${m}-ket"></td>
+            </tr>
+        `;
+    });
+    html += `</table></div>`;
+
+    /* SUMMARY */
+    html += `
+        <div class="card">
+            <h3>Summary Produksi 3</h3>
+            <p>Total Qty Semua Mesin: <b id="sum-p3">0</b></p>
+        </div>
+    `;
+
+    container.innerHTML = html;
+
+    /* event listener summary */
+    document.querySelectorAll(".p3-qty").forEach(inp=>{
+        inp.addEventListener("input", calcP3Summary);
+    });
+
+    calcP3Summary();
+}
+
+/* Hitung total Produksi 3 */
+function calcP3Summary(){
+    let total = 0;
+
+    document.querySelectorAll(".p3-qty").forEach(i=>{
+        total += Number(i.value || 0);
+    });
+
+    document.getElementById("sum-p3").innerText = total;
+}
+
+/* Render saat tombol ditekan */
+document.querySelector("[data-page='prod3']").addEventListener("click", renderProduksi3);
+</script>
+<script>
+/* ======================================================
+   SETTING PRODUK
+   ====================================================== */
+
+function renderSetting(){
+    const container = document.getElementById("setting-container");
+    container.innerHTML = "";
+
+    let html = `
+        <div class="card">
+            <h3>Tambah Produk</h3>
+            <table width="100%">
+                <tr><td>Nama Produk</td><td><input id="set-nama" type="text"></td></tr>
+                <tr><td>Tebal</td><td><input id="set-tebal" type="text"></td></tr>
+                <tr><td>Ply</td><td><input id="set-ply" type="text"></td></tr>
+                <tr><td>Tipe Lem</td><td><input id="set-lem" type="text"></td></tr>
+                <tr><td>Qty</td><td><input id="set-qty" type="number"></td></tr>
+                <tr><td>Keterangan</td><td><input id="set-ket" type="text"></td></tr>
+            </table>
+            <br>
+            <button onclick="addSetting()" style="padding:10px;width:150px;background:#2563eb;color:white;border-radius:8px;border:0">Tambah</button>
+        </div>
+
+        <div class="card">
+            <h3>Data Setting Produk</h3>
+            <table border="1" width="100%" id="setting-table" style="border-collapse:collapse">
+                <tr>
+                    <th>Nama</th>
+                    <th>Tebal</th>
+                    <th>Ply</th>
+                    <th>Tipe Lem</th>
+                    <th>Qty</th>
+                    <th>Keterangan</th>
+                    <th>Aksi</th>
+                </tr>
+            </table>
+        </div>
+    `;
+
+    container.innerHTML = html;
+}
+
+function addSetting(){
+    const table = document.getElementById("setting-table");
+
+    const nama = document.getElementById("set-nama").value;
+    const tebal = document.getElementById("set-tebal").value;
+    const ply = document.getElementById("set-ply").value;
+    const lem = document.getElementById("set-lem").value;
+    const qty = document.getElementById("set-qty").value;
+    const ket = document.getElementById("set-ket").value;
+
+    if(nama === "" || qty === ""){
+        alert("Nama & Qty harus diisi!");
+        return;
+    }
+
+    const row = table.insertRow(-1);
+    row.innerHTML = `
+        <td>${nama}</td>
+        <td>${tebal}</td>
+        <td>${ply}</td>
+        <td>${lem}</td>
+        <td>${qty}</td>
+        <td>${ket}</td>
+        <td><button onclick="this.parentElement.parentElement.remove()">Delete</button></td>
+    `;
+}
+
+/* Page listener */
+document.querySelector("[data-page='setting']").addEventListener("click", renderSetting);
+
+
+
+
+
+/* ======================================================
+   GLUE SPREADER (OPERATOR)
+   ====================================================== */
+
+function renderGlue(){
+    const container = document.getElementById("glue-container");
+    container.innerHTML = "";
+
+    let html = `
+        <div class="card">
+            <h3>Input Glue Spreader (Operator)</h3>
+            <table width="100%">
+                <tr><td>Lem (Kg)</td><td><input id="gs-lem" type="number"></td></tr>
+                <tr><td>Hardener (Kg)</td><td><input id="gs-hard" type="number"></td></tr>
+                <tr><td>Tepung (Kg)</td><td><input id="gs-tep" type="number"></td></tr>
+                <tr><td>Pewarna (Kg)</td><td><input id="gs-warna" type="number"></td></tr>
+                <tr><td>Anti Rayap (Kg)</td><td><input id="gs-rayap" type="number"></td></tr>
+                <tr><td>Viscocity</td><td><input id="gs-vis" type="text"></td></tr>
+                <tr><td>Banyak Cuci/Hari</td><td><input id="gs-cuci" type="number"></td></tr>
+                <tr><td>Loss Lem (Kg)</td><td><input id="gs-loss" type="number"></td></tr>
+                <tr><td>Keterangan</td><td><input id="gs-ket" type="text"></td></tr>
+            </table>
+
+            <br>
+            <button onclick="addGlue()" style="padding:10px;width:180px;background:#2563eb;color:white;border-radius:8px;border:0">
+                Tambah Data
+            </button>
+        </div>
+
+        <div class="card">
+            <h3>Data Glue Spreader</h3>
+            <table border="1" width="100%" id="glue-table" style="border-collapse:collapse">
+                <tr>
+                    <th>Lem</th>
+                    <th>Hardener</th>
+                    <th>Tepung</th>
+                    <th>Pewarna</th>
+                    <th>Anti Rayap</th>
+                    <th>Viscocity</th>
+                    <th>Cuci/Hari</th>
+                    <th>Loss Lem</th>
+                    <th>Keterangan</th>
+                    <th>Aksi</th>
+                </tr>
+            </table>
+        </div>
+    `;
+
+    container.innerHTML = html;
+}
+
+/* Tambah data Glue Spreader */
+function addGlue(){
+    const table = document.getElementById("glue-table");
+
+    const row = table.insertRow(-1);
+
+    const lem = document.getElementById("gs-lem").value || 0;
+    const hard = document.getElementById("gs-hard").value || 0;
+    const tep = document.getElementById("gs-tep").value || 0;
+    const warna = document.getElementById("gs-warna").value || 0;
+    const rayap = document.getElementById("gs-rayap").value || 0;
+    const vis = document.getElementById("gs-vis").value || "-";
+    const cuci = document.getElementById("gs-cuci").value || 0;
+    const loss = document.getElementById("gs-loss").value || 0;
+    const ket = document.getElementById("gs-ket").value || "";
+
+    row.innerHTML = `
+        <td>${lem}</td>
+        <td>${hard}</td>
+        <td>${tep}</td>
+        <td>${warna}</td>
+        <td>${rayap}</td>
+        <td>${vis}</td>
+        <td>${cuci}</td>
+        <td>${loss}</td>
+        <td>${ket}</td>
+        <td><button onclick="this.parentElement.parentElement.remove()">Delete</button></td>
+    `;
+
+    clearGlueForm();
+}
+
+/* Clear setelah tambah */
+function clearGlueForm(){
+    ["gs-lem","gs-hard","gs-tep","gs-warna","gs-rayap","gs-vis","gs-cuci","gs-loss","gs-ket"].forEach(id=>{
+        document.getElementById(id).value = "";
+    });
+}
+
+/* Page event */
+document.querySelector("[data-page='glue']").addEventListener("click", renderGlue);
+
+function calcGlue(){
+    let total = 0;
+
+    const keys = ["gs-lem","gs-hard","gs-tep","gs-warna","gs-rayap","gs-loss"];
+
+    keys.forEach(id=>{
+        total += Number(document.getElementById(id).value || 0);
+    });
+
+    document.getElementById("gs-total").innerText = total;
+}
+
+document.querySelector("[data-page='glue']").addEventListener("click", renderGlue);
+
+
+
+/* ======================================================
+   EXPORT DATA (CSV/EXCEL)
+   ====================================================== */
+
+function renderExport(){
+    const container = document.getElementById("export-container");
+
+    container.innerHTML = `
+        <div class="card">
+            <h3>Export Data</h3>
+            <button onclick="exportCSV()" style="padding:10px;width:150px;background:#2563eb;color:white;border-radius:8px;border:0">Export CSV</button>
+            &nbsp;
+            <button onclick="exportExcel()" style="padding:10px;width:150px;border-radius:8px;border:1px solid #2563eb;color:#2563eb;background:white">Export Excel</button>
+        </div>
+    `;
+}
+
+document.querySelector("[data-page='export']").addEventListener("click", renderExport);
+
+
+/* CSV EXPORT */
+function exportCSV(){
+    let csv = "Data,Value\n";
+    csv += "Export,Success\n";
+
+    const blob = new Blob([csv], {type:"text/csv"});
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "export.csv";
+    a.click();
+}
+
+/* EXCEL EXPORT (minimal) */
+function exportExcel(){
+    let html = "<table><tr><td>Export</td><td>Success</td></tr></table>";
+    const blob = new Blob([html], {type:"application/vnd.ms-excel"});
+
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "export.xls";
+    a.click();
+}
+
+</script>
+<script>
+/* ======================================================
+   PRODUKSI 4 — DP • FILM • CNC • DS2
+   ====================================================== */
+
+function renderProduksi4(){
+    const container = document.getElementById("prod4-container");
+    container.innerHTML = "";
+
+    const DP = ["DP1","DP2","DP3","DP4","DP5","DP6"];
+    const Film = ["Film1","Film2"];
+    const CNC = ["CNC Cutting"];
+    const DS2 = ["DS2"];
+
+    const now = new Date();
+    const today = now.toISOString().split("T")[0];
+    const hour = String(now.getHours()).padStart(2,"0") + ":00";
+
+    let html = `
+        <div class="card">
+            <h3>Produksi 4</h3>
+            <label><b>Tanggal</b></label>
+            <input type="date" id="prod4-date" value="${today}">
+            <br><br>
+            <label><b>Jam</b></label>
+            <input type="time" id="prod4-time" value="${hour}">
+        </div>
+    `;
+
+    /* DP1 – DP6 */
+    html += `
+        <div class="card">
+            <h3>Mesin DP (Qty/Jam Lembar)</h3>
+            <table border="1" width="100%" style="border-collapse:collapse">
+            <tr><th>Mesin</th><th>Qty/Jam (Lembar)</th><th>Keterangan</th></tr>
+    `;
+    DP.forEach(m=>{
+        html += `
+            <tr>
+                <td>${m}</td>
+                <td><input type="number" class="p4-dp" data-name="${m}-qty"></td>
+                <td><input type="text" data-name="${m}-ket"></td>
+            </tr>
+        `;
+    });
+    html += `</table></div>`;
+
+    /* Film1 – Film2 */
+    html += `
+        <div class="card">
+            <h3>Mesin Film</h3>
+            <table border="1" width="100%" style="border-collapse:collapse">
+            <tr><th>Mesin</th><th>Grade</th><th>Qty</th><th>Keterangan</th></tr>
+    `;
+    Film.forEach(m=>{
+        html += `
+            <tr>
+                <td>${m}</td>
+                <td><input type="text" class="p4-film-grade" data-name="${m}-grade"></td>
+                <td><input type="number" class="p4-film-qty" data-name="${m}-qty"></td>
+                <td><input type="text" data-name="${m}-ket"></td>
+            </tr>
+        `;
+    });
+    html += `</table></div>`;
+
+    /* CNC Cutting */
+    html += `
+        <div class="card">
+            <h3>CNC Cutting</h3>
+            <table border="1" width="100%" style="border-collapse:collapse">
+                <tr><th>Mesin</th><th>Qty (Lembar)</th><th>Ukuran</th><th>Keterangan</th></tr>
+                <tr>
+                    <td>CNC Cutting</td>
+                    <td><input type="number" class="p4-cnc" data-name="cnc-qty"></td>
+                    <td><input type="text" data-name="cnc-ukuran"></td>
+                    <td><input type="text" data-name="cnc-ket"></td>
+                </tr>
+            </table>
+        </div>
+    `;
+
+    /* DS2 */
+    html += `
+        <div class="card">
+            <h3>DS2</h3>
+            <table border="1" width="100%" style="border-collapse:collapse">
+                <tr><th>Mesin</th><th>Qty (Lembar)</th><th>Ukuran</th><th>Keterangan</th></tr>
+                <tr>
+                    <td>DS2</td>
+                    <td><input type="number" class="p4-ds2" data-name="ds2-qty"></td>
+                    <td><input type="text" data-name="ds2-ukuran"></td>
+                    <td><input type="text" data-name="ds2-ket"></td>
+                </tr>
+            </table>
+        </div>
+    `;
+
+    /* SUMMARY */
+    html += `
+        <div class="card">
+            <h3>Summary Produksi 4</h3>
+            <p>Total DP Qty/Jam (Lembar): <b id="sum-p4-dp">0</b></p>
+            <p>Total Film Qty: <b id="sum-p4-film">0</b></p>
+            <p>Total CNC Cutting Qty: <b id="sum-p4-cnc">0</b></p>
+            <p>Total DS2 Qty: <b id="sum-p4-ds2">0</b></p>
+        </div>
+    `;
+
+    container.innerHTML = html;
+
+    document.querySelectorAll(".p4-dp, .p4-film-qty, .p4-cnc, .p4-ds2").forEach(inp=>{
+        inp.addEventListener("input", calcP4Summary);
+    });
+
+    calcP4Summary();
+}
+
+function calcP4Summary(){
+    let totalDP = 0, totalFilm = 0, totalCNC = 0, totalDS2 = 0;
+
+    document.querySelectorAll(".p4-dp").forEach(i=> totalDP += Number(i.value || 0));
+    document.querySelectorAll(".p4-film-qty").forEach(i=> totalFilm += Number(i.value || 0));
+    document.querySelectorAll(".p4-cnc").forEach(i=> totalCNC += Number(i.value || 0));
+    document.querySelectorAll(".p4-ds2").forEach(i=> totalDS2 += Number(i.value || 0));
+
+    document.getElementById("sum-p4-dp").innerText = totalDP;
+    document.getElementById("sum-p4-film").innerText = totalFilm;
+    document.getElementById("sum-p4-cnc").innerText = totalCNC;
+    document.getElementById("sum-p4-ds2").innerText = totalDS2;
+}
+
+/* Trigger when sidebar clicked */
+document.querySelector("[data-page='prod4']").addEventListener("click", renderProduksi4);
+
+
+
+/* ======================================================
+   WAREHOUSE — MENU BARU
+   ====================================================== */
+
+function renderWarehouse(){
+    const container = document.getElementById("warehouse-container");
+    container.innerHTML = "";
+
+    let html = `
+        <div class="card">
+            <h3>Warehouse — Penerimaan dari Produksi 4</h3>
+            <table width="100%">
+                <tr><td>Dari P4</td><td><input id="wh-p4" type="text"></td></tr>
+                <tr><td>Jumlah Lembar Diterima</td><td><input id="wh-jumlah" type="number"></td></tr>
+                <tr><td>Sudah Packing / Crate</td><td><input id="wh-packing" type="text"></td></tr>
+                <tr><td>Keterangan</td><td><input id="wh-ket" type="text"></td></tr>
+            </table>
+
+            <br>
+            <button onclick="addWarehouse()" style="padding:10px;width:180px;background:#2563eb;color:white;border-radius:8px;border:0">
+                Tambah Data
+            </button>
+        </div>
+
+        <div class="card">
+            <h3>Data Warehouse</h3>
+            <table border="1" width="100%" id="warehouse-table" style="border-collapse:collapse">
+                <tr>
+                    <th>Dari P4</th>
+                    <th>Jumlah Lembar</th>
+                    <th>Packing/Crate</th>
+                    <th>Keterangan</th>
+                    <th>Aksi</th>
+                </tr>
+            </table>
+        </div>
+    `;
+
+    container.innerHTML = html;
+}
+
+function addWarehouse(){
+    const table = document.getElementById("warehouse-table");
+
+    const p4 = document.getElementById("wh-p4").value;
+    const jml = document.getElementById("wh-jumlah").value;
+    const packing = document.getElementById("wh-packing").value;
+    const ket = document.getElementById("wh-ket").value;
+
+    const row = table.insertRow(-1);
+    row.innerHTML = `
+        <td>${p4}</td>
+        <td>${jml}</td>
+        <td>${packing}</td>
+        <td>${ket}</td>
+        <td><button onclick="this.parentElement.parentElement.remove()">Delete</button></td>
+    `;
+
+    ["wh-p4","wh-jumlah","wh-packing","wh-ket"].forEach(id=>document.getElementById(id).value="");
+}
+
+/* Sidebar trigger */
+document.querySelector("[data-page='warehouse']").addEventListener("click", renderWarehouse);
+</script>
+
+</body>
+</html>

@@ -6,18 +6,21 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Carbon;
 
-class DailyTarget extends Model
+class DailyTargetValue extends Model
 {
     use HasFactory;
-    protected $table = 'daily_targets';
-    protected $primaryKey = 'daily_target_id';
+
+    protected $table = 'daily_target_values';
+    protected $primaryKey = 'daily_target_value_id';
     public $timestamps = true;
 
     protected $fillable = [
+        'production_machine_group_id',
         'date',
+        'field_name',
         'target_value',
         'actual_value',
-        'notes',
+        'keterangan',
     ];
 
     protected $casts = [
@@ -51,13 +54,9 @@ class DailyTarget extends Model
     }
 
     /* RELATIONSHIPS */
-    public function dailyTargetValues()
+    public function productionMachineGroup()
     {
-        return $this->hasManyThrough(
-            DailyTargetValue::class,
-            Production::class,
-            'production_id',
-            'production_machine_group_id'
-        );
+        return $this->belongsTo(ProductionMachineGroup::class, 'production_machine_group_id', 'production_machine_group_id');
     }
 }
+

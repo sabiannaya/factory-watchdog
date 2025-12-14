@@ -18,6 +18,11 @@ class ProductionMachineGroup extends Model
         'machine_group_id',
         'machine_count',
         'default_target',
+        'default_targets',
+    ];
+
+    protected $casts = [
+        'default_targets' => 'array',
     ];
 
     /* ACCESSORS & MUTATORS */
@@ -39,5 +44,15 @@ class ProductionMachineGroup extends Model
     public function machineGroup()
     {
         return $this->belongsTo(MachineGroup::class, 'machine_group_id', 'machine_group_id');
+    }
+
+    public function productionMachineGroupTargets()
+    {
+        return $this->hasMany(ProductionMachineGroupTarget::class, 'production_machine_group_id', 'production_machine_group_id');
+    }
+
+    public function dailyTargetValues()
+    {
+        return $this->hasMany(DailyTargetValue::class, 'production_machine_group_id', 'production_machine_group_id');
     }
 }

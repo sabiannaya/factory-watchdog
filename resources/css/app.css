@@ -191,5 +191,7 @@
 
     .btn-ghost {
         @apply bg-transparent shadow-none hover:bg-accent hover:text-accent-foreground;
+        /* Ensure readable text in both light and dark themes */
+        color: var(--color-foreground);
     }
 }

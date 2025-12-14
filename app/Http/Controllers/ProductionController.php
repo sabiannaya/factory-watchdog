@@ -84,7 +84,22 @@ class ProductionController extends Controller
      */
     public function create()
     {
-        //
+        $machineGroups = MachineGroup::query()
+            ->select(['machine_group_id', 'name', 'description', 'input_config'])
+            ->get()
+            ->map(function ($m) {
+                return [
+                    'machine_group_id' => $m->machine_group_id,
+                    'name' => $m->name,
+                    'description' => $m->description,
+                    'input_config' => $m->input_config,
+                ];
+            })
+            ->all();
+
+        return Inertia::render('data-management/ProductionCreate', [
+            'machine_groups' => $machineGroups,
+        ]);
     }
 
     /**
@@ -92,7 +107,72 @@ class ProductionController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $data = $request->validate([
+            'production_name' => ['required', 'string', 'max:255'],
+            'status' => ['required', 'in:active,inactive'],
+            'machine_groups' => ['nullable', 'array'],
+            'machine_groups.*.machine_group_id' => ['required_with:machine_groups', 'integer', 'exists:machine_groups,machine_group_id'],
+            'machine_groups.*.machine_count' => ['nullable', 'integer', 'min:1'],
+            'machine_groups.*.targets' => ['nullable', 'array'],
+            'machine_groups.*.default_targets' => ['nullable', 'array'],
+            'machine_groups.*.default_targets.*' => ['nullable', 'integer', 'min:0'],
+            'target_date' => ['nullable', 'date'],
+        ]);
+
+        $production = Production::create([
+            'production_name' => $data['production_name'],
+            'status' => $data['status'],
+        ]);
+
+        // Handle attached machine groups
+        $groups = $request->input('machine_groups', []);
+        $targetDate = $request->input('target_date');
+
+        foreach ($groups as $g) {
+            $mgId = (int) $g['machine_group_id'];
+            $machineCount = isset($g['machine_count']) ? (int) $g['machine_count'] : 1;
+            $targets = $g['targets'] ?? [];
+            $defaultTargets = $g['default_targets'] ?? [];
+
+            // Get default target (use first target value or null for legacy support)
+            $defaultTarget = null;
+            if (! empty($targets)) {
+                $firstTarget = reset($targets);
+                $defaultTarget = $firstTarget !== null && $firstTarget !== '' ? (int) $firstTarget : null;
+            }
+
+            $pmg = ProductionMachineGroup::create([
+                'production_id' => $production->production_id,
+                'machine_group_id' => $mgId,
+                'name' => null,
+                'machine_count' => $machineCount,
+                'default_target' => $defaultTarget,
+                'default_targets' => $defaultTargets,
+            ]);
+
+            // Create daily targets if target_date is provided
+            if ($targetDate && ! empty($targets)) {
+                foreach ($targets as $field => $targetValue) {
+                    if ($targetValue === null || $targetValue === '') {
+                        continue;
+                    }
+
+                    $daily = DailyTarget::create([
+                        'date' => $targetDate,
+                        'target_value' => (int) $targetValue,
+                        'actual_value' => 0,
+                        'notes' => "Field: {$field}",
+                    ]);
+
+                    ProductionMachineGroupTarget::create([
+                        'production_machine_group_id' => $pmg->production_machine_group_id,
+                        'daily_target_id' => $daily->daily_target_id,
+                    ]);
+                }
+            }
+        }
+
+        return redirect()->route('data-management.production')->with('success', 'Production created successfully.');
     }
 
     /**
@@ -132,13 +212,18 @@ class ProductionController extends Controller
     public function edit(Production $production)
     {
         // Load all machine groups and the production's attached groups
-        $machineGroups = MachineGroup::query()->select(['machine_group_id', 'name', 'description'])->get()->map(function ($m) {
-            return [
-                'machine_group_id' => $m->machine_group_id,
-                'name' => $m->name,
-                'description' => $m->description,
-            ];
-        })->all();
+        $machineGroups = MachineGroup::query()
+            ->select(['machine_group_id', 'name', 'description', 'input_config'])
+            ->get()
+            ->map(function ($m) {
+                return [
+                    'machine_group_id' => $m->machine_group_id,
+                    'name' => $m->name,
+                    'description' => $m->description,
+                    'input_config' => $m->input_config,
+                ];
+            })
+            ->all();
 
         $attached = $production->productionMachineGroups()->get()->map(function ($pmg) {
             return [
@@ -146,6 +231,7 @@ class ProductionController extends Controller
                 'machine_group_id' => $pmg->machine_group_id,
                 'machine_count' => $pmg->machine_count,
                 'default_target' => $pmg->default_target ?? null,
+                'default_targets' => $pmg->default_targets ?? [],
                 'name' => $pmg->name,
             ];
         })->keyBy('machine_group_id')->all();
@@ -172,9 +258,10 @@ class ProductionController extends Controller
             'machine_groups' => ['nullable', 'array'],
             'machine_groups.*.machine_group_id' => ['required_with:machine_groups', 'integer', 'exists:machine_groups,machine_group_id'],
             'machine_groups.*.machine_count' => ['nullable', 'integer', 'min:1'],
-            'machine_groups.*.default_target' => ['nullable', 'integer', 'min:0'],
+            'machine_groups.*.targets' => ['nullable', 'array'],
+            'machine_groups.*.default_targets' => ['nullable', 'array'],
+            'machine_groups.*.default_targets.*' => ['nullable', 'integer', 'min:0'],
             'target_date' => ['nullable', 'date'],
-            'machine_groups.*.target_value' => ['nullable', 'integer', 'min:0'],
         ]);
 
         $production->update($data);
@@ -193,8 +280,15 @@ class ProductionController extends Controller
                 $incomingIds[] = $mgId;
 
                 $machineCount = isset($g['machine_count']) ? (int) $g['machine_count'] : 1;
-                // prefer per-date target_value if provided; keep it also as pmg.default_target for convenience
-                $defaultTarget = isset($g['target_value']) && $g['target_value'] !== '' ? (int) $g['target_value'] : (isset($g['default_target']) && $g['default_target'] !== '' ? (int) $g['default_target'] : null);
+                $targets = $g['targets'] ?? [];
+                $defaultTargets = $g['default_targets'] ?? [];
+                
+                // Get default target (use first target value or null for legacy support)
+                $defaultTarget = null;
+                if (! empty($targets)) {
+                    $firstTarget = reset($targets);
+                    $defaultTarget = $firstTarget !== null && $firstTarget !== '' ? (int) $firstTarget : null;
+                }
 
                 $existing = ProductionMachineGroup::where('production_id', $production->production_id)
                     ->where('machine_group_id', $mgId)
@@ -204,6 +298,7 @@ class ProductionController extends Controller
                     $existing->update([
                         'machine_count' => $machineCount,
                         'default_target' => $defaultTarget,
+                        'default_targets' => $defaultTargets,
                     ]);
                 } else {
                     ProductionMachineGroup::create([
@@ -212,6 +307,7 @@ class ProductionController extends Controller
                         'name' => null,
                         'machine_count' => $machineCount,
                         'default_target' => $defaultTarget,
+                        'default_targets' => $defaultTargets,
                     ]);
                 }
             }
@@ -222,13 +318,14 @@ class ProductionController extends Controller
                 ->delete();
         }
 
-        // If a target_date and per-group target values are provided, create daily targets and link them
+        // If a target_date and per-group targets are provided, create daily targets and link them
         $targetDate = $request->input('target_date');
         if ($targetDate && is_array($groups)) {
             foreach ($groups as $g) {
                 $mgId = isset($g['machine_group_id']) ? (int) $g['machine_group_id'] : null;
-                $targetValue = isset($g['target_value']) && $g['target_value'] !== '' ? (int) $g['target_value'] : null;
-                if (! $mgId || $targetValue === null) {
+                $targets = $g['targets'] ?? [];
+                
+                if (! $mgId || empty($targets)) {
                     continue;
                 }
 
@@ -251,17 +348,24 @@ class ProductionController extends Controller
                     $e->delete();
                 }
 
-                // create a daily target for this pmg/date
-                $daily = DailyTarget::create([
-                    'date' => $targetDate,
-                    'target_value' => $targetValue,
-                    'actual_value' => 0,
-                ]);
+                // create daily targets for each field
+                foreach ($targets as $field => $targetValue) {
+                    if ($targetValue === null || $targetValue === '') {
+                        continue;
+                    }
 
-                ProductionMachineGroupTarget::create([
-                    'production_machine_group_id' => $pmg->production_machine_group_id,
-                    'daily_target_id' => $daily->daily_target_id,
-                ]);
+                    $daily = DailyTarget::create([
+                        'date' => $targetDate,
+                        'target_value' => (int) $targetValue,
+                        'actual_value' => 0,
+                        'notes' => "Field: {$field}",
+                    ]);
+
+                    ProductionMachineGroupTarget::create([
+                        'production_machine_group_id' => $pmg->production_machine_group_id,
+                        'daily_target_id' => $daily->daily_target_id,
+                    ]);
+                }
             }
         }
 

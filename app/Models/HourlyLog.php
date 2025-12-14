@@ -19,10 +19,18 @@ class HourlyLog extends Model
         'recorded_at',
         'output_value',
         'target_value',
+        'qty',
+        'qty_normal',
+        'qty_reject',
+        'grades',
+        'grade',
+        'ukuran',
+        'keterangan',
     ];
 
     protected $casts = [
         'recorded_at' => 'datetime',
+        'grades' => 'array',
     ];
 
     public function productionMachineGroup()
@@ -54,5 +62,70 @@ class HourlyLog extends Model
         }
 
         return Carbon::parse($value, 'UTC')->setTimezone('Asia/Jakarta');
+    }
+
+    /**
+     * Calculate output_value from flexible input fields.
+     * This aggregates all quantity-related fields into a single output_value.
+     */
+    public function calculateOutputValue(): int
+    {
+        $total = 0;
+
+        // Simple qty
+        if ($this->qty !== null) {
+            $total += (int) $this->qty;
+        }
+
+        // Normal and reject quantities
+        if ($this->qty_normal !== null) {
+            $total += (int) $this->qty_normal;
+        }
+        if ($this->qty_reject !== null) {
+            $total += (int) $this->qty_reject;
+        }
+
+        // Grades (sum all grade values)
+        if ($this->grades !== null && is_array($this->grades)) {
+            foreach ($this->grades as $gradeValue) {
+                $total += (int) ($gradeValue ?? 0);
+            }
+        }
+
+        // Grade with qty (for Film type - qty is separate field)
+        // Note: grade field itself is just a label, qty is the actual quantity
+
+        // For CNC/DS2, qty is already included above
+
+        return $total;
+    }
+
+    /**
+     * Boot method to auto-calculate output_value before saving.
+     */
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::saving(function (self $log) {
+            // Only auto-calculate if output_value is not explicitly set
+            // or if it's 0 and we have other input fields
+            if ($log->output_value === null || ($log->output_value === 0 && $log->hasInputData())) {
+                $log->output_value = $log->calculateOutputValue();
+            }
+        });
+    }
+
+    /**
+     * Check if this log has any input data.
+     */
+    public function hasInputData(): bool
+    {
+        return $this->qty !== null
+            || $this->qty_normal !== null
+            || $this->qty_reject !== null
+            || ($this->grades !== null && ! empty($this->grades))
+            || $this->grade !== null
+            || $this->ukuran !== null;
     }
 }

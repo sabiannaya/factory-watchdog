@@ -81,6 +81,12 @@ router.on('finish', () => (loading.value = false));
                 <p class="mt-2 text-sm text-muted-foreground">Manage machine groups</p>
 
                 <div class="mt-4">
+                    <div class="mb-4 flex items-center justify-between">
+                        <div></div>
+                        <button class="btn" @click="router.get('/data-management/machine/create')">
+                            Create Machine Group
+                        </button>
+                    </div>
                     <div class="overflow-x-auto">
                         <table class="w-full table-auto border-collapse">
                             <thead>

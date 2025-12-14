@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router, Link } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -11,7 +11,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
     {
         title: 'Targets',
-        href: '/data-management/target',
+        href: '/data-management/targets',
     },
 ];
 
@@ -40,7 +40,7 @@ const selectedDate = ref(props.selectedDate);
 watch([selectedProduction, selectedDate], ([prodId, date]) => {
     if (!prodId) return;
     router.get(
-        '/data-management/target',
+        '/data-management/targets',
         {
             production_id: prodId,
             date: date,
@@ -83,12 +83,7 @@ const getDefaultTarget = (machineGroupId: number, fieldName: string) => {
                         View and manage daily targets for production machine groups
                     </p>
                 </div>
-                <Link
-                    href="/data-management/targets/create"
-                    class="btn"
-                >
-                    Create Daily Targets
-                </Link>
+                <Link href="/data-management/targets/create" class="btn">Create Daily Targets</Link>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -177,4 +172,3 @@ const getDefaultTarget = (machineGroupId: number, fieldName: string) => {
         </div>
     </AppLayout>
 </template>
-

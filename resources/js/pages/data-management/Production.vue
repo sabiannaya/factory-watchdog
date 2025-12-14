@@ -119,6 +119,9 @@ const confirmDelete = (id: number | string) => {
                     <h2 class="text-2xl font-semibold">Production</h2>
                     <p class="text-sm text-muted-foreground">Manage production records</p>
                 </div>
+                <button class="btn" @click="router.get('/data-management/production/create')">
+                    Create Production
+                </button>
             </div>
 
             <div class="flex items-center gap-3 mb-2">

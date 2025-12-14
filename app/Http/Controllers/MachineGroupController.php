@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreMachineGroupRequest;
+use App\Http\Requests\UpdateMachineGroupRequest;
 use App\Models\MachineGroup;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -23,7 +25,7 @@ class MachineGroupController extends Controller
         if (! in_array($sort, $allowed, true)) $sort = 'name';
 
         $query = MachineGroup::query()
-            ->select(['machine_group_id', 'name', 'description', 'created_at'])
+            ->select(['machine_group_id', 'name', 'description', 'input_config', 'created_at'])
             ->with(['productionMachineGroups.production'])
             ->orderBy($sort, $direction)
             ->orderBy('machine_group_id', 'asc');
@@ -49,6 +51,7 @@ class MachineGroupController extends Controller
                 'machine_group_id' => $mg->machine_group_id,
                 'name' => $mg->name,
                 'description' => $mg->description,
+                'input_config' => $mg->input_config,
                 'created_at' => $mg->created_at->toDateString(),
                 'total_machines' => $total,
                 'active_machines' => $active,
@@ -76,7 +79,7 @@ class MachineGroupController extends Controller
         $allocations = $machine_group->productionMachineGroups()->with('production')->get()->map(function ($pmg) {
             return [
                 'production_id' => $pmg->production_id,
-                'production_name' => $pmg->production?->name ?? null,
+                'production_name' => $pmg->production?->production_name ?? null,
                 'machine_count' => (int) ($pmg->machine_count ?? 0),
             ];
         });
@@ -88,6 +91,7 @@ class MachineGroupController extends Controller
                 'machine_group_id' => $machine_group->machine_group_id,
                 'name' => $machine_group->name,
                 'description' => $machine_group->description,
+                'input_config' => $machine_group->input_config,
                 'total_machines' => $total,
                 'allocations' => $allocations,
             ],
@@ -99,15 +103,24 @@ class MachineGroupController extends Controller
      */
     public function create()
     {
-        //
+        return Inertia::render('data-management/MachineCreate');
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreMachineGroupRequest $request)
     {
-        //
+        $data = $request->validated();
+        
+        // Ensure input_config has at least 'fields' if provided
+        if (isset($data['input_config']) && empty($data['input_config']['fields'])) {
+            $data['input_config'] = null;
+        }
+
+        MachineGroup::create($data);
+
+        return redirect()->route('data-management.machine.index')->with('success', 'Machine group created successfully.');
     }
 
     
@@ -122,6 +135,7 @@ class MachineGroupController extends Controller
                 'machine_group_id' => $machineGroup->machine_group_id,
                 'name' => $machineGroup->name,
                 'description' => $machineGroup->description,
+                'input_config' => $machineGroup->input_config ?? ['type' => 'qty_only', 'fields' => ['qty']],
             ],
         ]);
     }
@@ -129,16 +143,18 @@ class MachineGroupController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, MachineGroup $machineGroup)
+    public function update(UpdateMachineGroupRequest $request, MachineGroup $machineGroup)
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-        ]);
+        $data = $request->validated();
+        
+        // Ensure input_config has at least 'fields' if provided
+        if (isset($data['input_config']) && empty($data['input_config']['fields'])) {
+            $data['input_config'] = null;
+        }
 
         $machineGroup->update($data);
 
-        return redirect()->route('data-management.machine.index')->with('success', 'Machine group updated.');
+        return redirect()->route('data-management.machine.index')->with('success', 'Machine group updated successfully.');
     }
 
     /**

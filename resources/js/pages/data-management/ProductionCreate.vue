@@ -2,37 +2,23 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
-import { ref, onMounted } from 'vue';
+import { ref, watch } from 'vue';
 import ProductionFormFields from '@/components/production/ProductionFormFields.vue';
 import MachineGroupSelector from '@/components/production/MachineGroupSelector.vue';
 import type { InputConfig } from '@/composables/useInputConfig';
 
-const props = defineProps<{ 
-    production: { 
-        production_id: number; 
-        production_name: string; 
-        status: string;
-    }, 
-    machine_groups?: Array<{
-        machine_group_id: number;
-        name: string;
-        description?: string;
-        input_config?: InputConfig;
-    }>, 
-    attached_groups?: Record<string, {
-        production_machine_group_id: number;
-        machine_group_id: number;
-        machine_count: number;
-        default_target: number | null;
-        default_targets?: Record<string, number | null>;
-    }>;
-}>();
-
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Data Management', href: '/data-management/production' },
     { title: 'Production', href: '/data-management/production' },
-    { title: props.production?.production_name ?? 'Edit', href: window.location.pathname },
+    { title: 'Create', href: window.location.pathname },
 ];
+
+interface MachineGroup {
+    machine_group_id: number;
+    name: string;
+    description?: string;
+    input_config?: InputConfig;
+}
 
 interface AttachedGroup {
     machine_group_id: number;
@@ -41,38 +27,26 @@ interface AttachedGroup {
     default_targets: Record<string, number | null>;
 }
 
+const props = defineProps<{
+    machine_groups?: MachineGroup[];
+}>();
+
 const form = useForm({
-    production_name: props.production.production_name,
-    status: props.production.status,
+    production_name: '',
+    status: 'active',
     target_date: null as string | null,
-    machine_groups: [] as Array<AttachedGroup>,
+    machine_groups: {} as Record<number, AttachedGroup>,
 });
 
 const targetDate = ref<string | null>(null);
 const attachedGroups = ref<Record<number, AttachedGroup>>({});
 const clientErrors = ref<Record<number, Record<string, string[]>>>({});
 
-// Initialize attached groups from props
-onMounted(() => {
-    const groups: Record<number, AttachedGroup> = {};
-
-    if (props.attached_groups) {
-        Object.values(props.attached_groups).forEach(ag => {
-            groups[ag.machine_group_id] = {
-                machine_group_id: ag.machine_group_id,
-                machine_count: ag.machine_count,
-                // Backward compatibility: if only legacy default_target exists, map it to qty
-                targets: {
-                    qty: ag.default_target,
-                },
-                // Use per-field defaults if present, otherwise initialize as empty
-                default_targets: ag.default_targets ?? {},
-            };
-        });
-    }
-
-    attachedGroups.value = groups;
-});
+// Watch for changes and sync to form
+watch([targetDate, attachedGroups], () => {
+    form.target_date = targetDate.value;
+    form.machine_groups = attachedGroups.value;
+}, { deep: true });
 
 function handleAttachedGroupsUpdate(newGroups: Record<number, AttachedGroup>) {
     attachedGroups.value = newGroups;
@@ -95,7 +69,6 @@ function validateClient(): boolean {
         }
 
         if (targetDate.value) {
-            // When target date is set, at least one target should be provided
             const hasTargets = Object.values(group.targets).some(v => v !== null && v !== undefined);
             if (!hasTargets) {
                 errors.targets = ['At least one target is required when target date is set'];
@@ -116,11 +89,7 @@ function submit(): void {
         return;
     }
 
-    // Populate form fields
-    form.target_date = targetDate.value;
-    form.machine_groups = Object.values(attachedGroups.value);
-
-    form.put(`/data-management/production/${props.production.production_id}`, {
+    form.post('/data-management/production', {
         preserveState: false,
         onSuccess: () => {
             router.get('/data-management/production');
@@ -130,13 +99,13 @@ function submit(): void {
 </script>
 
 <template>
-    <Head :title="`Edit Production — ${props.production.production_name}`" />
+    <Head title="Create Production" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="p-4 space-y-4">
             <div>
-                <h1 class="text-3xl font-bold">Edit Production</h1>
+                <h1 class="text-3xl font-bold">Create Production</h1>
                 <p class="text-muted-foreground dark:text-muted-foreground">
-                    Configure production details and attach machine groups with targets
+                    Create a new production and attach machine groups with targets eee
                 </p>
             </div>
 
@@ -153,8 +122,8 @@ function submit(): void {
                 />
 
                 <div class="flex items-center gap-3 pt-4">
-                    <button type="submit" class="btn cursor-pointer" :disabled="form.processing">
-                        {{ form.processing ? 'Saving...' : 'Save Changes' }}
+                        <button type="submit" class="btn cursor-pointer" :disabled="form.processing">
+                        {{ form.processing ? 'Creating...' : 'Create Production' }}
                     </button>
                     <button
                         type="button"
