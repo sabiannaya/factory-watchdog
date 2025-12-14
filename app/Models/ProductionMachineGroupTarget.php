@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class ProductionMachineGroupTarget extends Model
 {
+    use HasFactory;
     protected $table = 'production_machine_group_targets';
     protected $primaryKey = 'production_machine_group_target_id';
     public $timestamps = true;

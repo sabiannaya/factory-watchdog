@@ -15,6 +15,11 @@ return new class extends Migration
             $table->id('production_machine_group_id');
             $table->unsignedBigInteger('production_id');
             $table->unsignedBigInteger('machine_group_id');
+            $table->string('name')->nullable();
+            $table->unsignedInteger('machine_count')->default(1);
+            $table->index('production_id', 'pmg_production_idx');
+            $table->index('machine_group_id', 'pmg_machine_idx');
+            $table->unique(['production_id', 'machine_group_id'], 'pmg_prod_machine_unique');
             $table->timestamps();
             $table->foreign('machine_group_id')->references('machine_group_id')->on('machine_groups')->onDelete('cascade');
             // Assuming there is a 'productions' table with 'production_id' as primary key

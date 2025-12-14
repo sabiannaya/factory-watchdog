@@ -15,6 +15,8 @@ return new class extends Migration
             $table->id('production_id');
             $table->string('production_name');
             $table->string('status')->default('active');
+            $table->index('production_name');
+            $table->index('status');
             $table->timestamps();
         });
     }

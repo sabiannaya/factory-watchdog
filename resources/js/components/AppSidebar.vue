@@ -16,7 +16,7 @@ import {
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid } from 'lucide-vue-next';
+import { BookOpen, Folder, LayoutGrid, Clock, BarChart2, Layers } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
 const mainNavItems: NavItem[] = [
@@ -87,8 +87,69 @@ const footerNavItems: NavItem[] = [
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
+
+
+                    <!-- kept core data management links here; summaries/logs moved to dedicated group -->
                 </SidebarMenu>
             </SidebarGroup>
+
+            <SidebarGroup class="px-2 py-0">
+                <SidebarGroupLabel>Summaries</SidebarGroupLabel>
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton as-child :tooltip="'Group Summary (aggregates)'"><!-- moved -->
+                            <Link href="/data-management/aggregates/machine-groups">
+                                <BarChart2 />
+                                <span>Group Summary</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+
+                    <SidebarMenuItem>
+                        <SidebarMenuButton as-child :tooltip="'Production Summary (aggregates)'"><!-- moved -->
+                            <Link href="/data-management/aggregates/productions">
+                                <Layers />
+                                <span>Production Summary</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+
+                </SidebarMenu>
+            </SidebarGroup>
+
+            <SidebarGroup class="px-2 py-0">
+                <SidebarGroupLabel>Logs</SidebarGroupLabel>
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton as-child :tooltip="'Hourly Logs'">
+                            <Link href="/data-management/hourly-logs">
+                                <Clock />
+                                <span>Hourly Logs</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+
+
+                    <SidebarMenuItem>
+                        <SidebarMenuButton as-child :tooltip="'Group Logs (hourly aggregated)'"><!-- moved -->
+                            <Link href="/data-management/logs/group">
+                                <BarChart2 />
+                                <span>Group Logs</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+
+                    <SidebarMenuItem>
+                        <SidebarMenuButton as-child :tooltip="'Production Logs (hourly aggregated)'"><!-- moved -->
+                            <Link href="/data-management/logs/production">
+                                <Layers />
+                                <span>Production Logs</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarGroup>
+
         </SidebarContent>
 
         <SidebarFooter>

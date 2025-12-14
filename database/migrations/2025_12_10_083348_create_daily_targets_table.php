@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('daily_targets', function (Blueprint $table) {
             $table->id('daily_target_id');
             $table->date('date');
+            $table->index('date');
             $table->integer('target_value');
             $table->integer('actual_value')->default(0);
             $table->text('notes')->nullable();

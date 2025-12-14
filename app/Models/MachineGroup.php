@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class MachineGroup extends Model
 {
+    use HasFactory;
     protected $table = 'machine_groups';
     protected $primaryKey = 'machine_group_id';
     public $timestamps = true;
@@ -18,7 +20,7 @@ class MachineGroup extends Model
     /* ACCESSORS & MUTATORS */
     protected function getNameAttribute($value)
     {
-        return strtoupper($value);
+        return ucfirst(strtolower($value));
     }
 
     protected function setNameAttribute($value)

@@ -1,16 +1,9 @@
 <script setup lang="ts" generic="T extends Record<string, any>">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { ArrowUp, ArrowDown, ArrowUpDown, Search } from 'lucide-vue-next';
 import { Input } from '@/components/ui/input';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 
 export interface DataTableColumn {
     key: string;
@@ -26,32 +19,62 @@ interface Props {
     perPage?: number;
 }
 
-const props = withDefaults(defineProps<Props>(), {
+// add serverMode prop via defaults below
+
+const props = withDefaults(defineProps<Props & { serverMode?: boolean; initialSort?: string | null; initialDirection?: 'asc' | 'desc'; loading?: boolean }>(), {
     perPage: 10,
+    serverMode: false,
+    initialSort: null,
+    initialDirection: 'asc',
+    loading: false,
 });
+
+// expose perPage directly for template use
+const perPage = props.perPage;
 
 // Search state
 const searchQuery = ref('');
+let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+
+const emit = defineEmits(['server-search', 'server-sort']);
 
 // Sorting state
-const sortColumn = ref<string | null>(null);
-const sortDirection = ref<'asc' | 'desc'>('asc');
+const sortColumn = ref<string | null>(props.initialSort ?? null);
+const sortDirection = ref<'asc' | 'desc'>(props.initialDirection ?? 'asc');
+
+// Watch for prop changes to update sort state when server provides meta
+watch(() => props.initialSort, (s) => {
+    sortColumn.value = s ?? null;
+});
+watch(() => props.initialDirection, (d) => {
+    sortDirection.value = d ?? 'asc';
+});
 
 // Pagination state
 const currentPage = ref(1);
 
 // Sort function
 const toggleSort = (columnKey: string) => {
+    if (props.loading) return;
     if (sortColumn.value === columnKey) {
         sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
     } else {
         sortColumn.value = columnKey;
         sortDirection.value = 'asc';
     }
+    // if in server mode, notify parent so it can request a new page
+    if (props.serverMode) {
+        emit('server-sort', { sort: sortColumn.value, direction: sortDirection.value });
+    }
 };
 
 // Filter data by search query
 const filteredData = computed(() => {
+    // In server mode, don't filter locally - server handles it
+    if (props.serverMode) {
+        return props.data;
+    }
+
     if (!searchQuery.value.trim()) {
         return props.data;
     }
@@ -68,6 +91,32 @@ const filteredData = computed(() => {
             const value = row[column.key];
             if (value == null) return false;
 
+            // Special handling for date types: check multiple string representations
+            if (column.type === 'date') {
+                const date = new Date(value);
+                if (isNaN(date.getTime())) {
+                    // fallback to raw string match
+                    return String(value).toLowerCase().includes(query);
+                }
+
+                // ISO (yyyy-mm-ddThh:mm:ss.sssZ)
+                const iso = date.toISOString().toLowerCase();
+                if (iso.includes(query)) return true;
+
+                // locale date (e.g., 12/1/2025) and locale datetime
+                const localeDate = date.toLocaleDateString().toLowerCase();
+                if (localeDate.includes(query)) return true;
+
+                const localeString = date.toLocaleString().toLowerCase();
+                if (localeString.includes(query)) return true;
+
+                // timestamp numeric search
+                const ts = String(date.getTime());
+                if (ts.includes(query)) return true;
+
+                return false;
+            }
+
             return String(value).toLowerCase().includes(query);
         });
     });
@@ -75,6 +124,11 @@ const filteredData = computed(() => {
 
 // Sort filtered data
 const sortedData = computed(() => {
+    // In server mode, don't sort locally - server handles it
+    if (props.serverMode) {
+        return filteredData.value;
+    }
+
     if (!sortColumn.value) {
         return filteredData.value;
     }
@@ -110,8 +164,13 @@ const sortedData = computed(() => {
     });
 });
 
-// Paginate sorted data
+// Paginate sorted data (client-side only)
 const paginatedData = computed(() => {
+    if (props.serverMode) {
+        // server provides pre-paginated data
+        return props.data;
+    }
+
     const start = (currentPage.value - 1) * props.perPage;
     const end = start + props.perPage;
     return sortedData.value.slice(start, end);
@@ -119,6 +178,7 @@ const paginatedData = computed(() => {
 
 // Total pages
 const totalPages = computed(() => {
+    if (props.serverMode) return 1;
     return Math.ceil(sortedData.value.length / props.perPage);
 });
 
@@ -127,9 +187,16 @@ const resetPagination = () => {
     currentPage.value = 1;
 };
 
-// Watch for search changes
+// Watch for search changes with debounce
 const handleSearch = () => {
     resetPagination();
+    if (props.serverMode) {
+        // Debounce server searches by 300ms
+        if (searchTimeout) clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            emit('server-search', searchQuery.value);
+        }, 300);
+    }
 };
 
 // Format cell value based on type
@@ -170,28 +237,24 @@ const getSortIcon = (columnKey: string) => {
                     placeholder="Search..."
                     class="pl-8"
                     @input="handleSearch"
+                    :disabled="props.loading"
                 />
+                <Spinner v-if="props.loading" class="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
             </div>
         </div>
 
         <!-- Table -->
-        <div class="rounded-md border">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead
+        <div class="rounded-md border overflow-x-auto">
+            <table class="min-w-full divide-y divide-sidebar-border/70">
+                <thead class="bg-background">
+                    <tr>
+                        <th
                             v-for="column in columns"
                             :key="column.key"
-                            :class="[
-                                column.sortable !== false
-                                    ? 'cursor-pointer select-none'
-                                    : '',
-                            ]"
-                            @click="
-                                column.sortable !== false
-                                    ? toggleSort(column.key)
-                                    : null
-                            "
+                            scope="col"
+                            class="px-4 py-3 text-left text-sm font-medium text-sidebar-foreground/80"
+                            :class="(column.sortable !== false && !props.loading) ? 'cursor-pointer select-none' : ''"
+                                @click="(column.sortable !== false && !props.loading) ? toggleSort(column.key) : null"
                         >
                             <div class="flex items-center gap-2">
                                 <span>{{ column.label }}</span>
@@ -199,40 +262,32 @@ const getSortIcon = (columnKey: string) => {
                                     :is="getSortIcon(column.key)"
                                     v-if="column.sortable !== false"
                                     class="size-4"
-                                    :class="[
-                                        sortColumn === column.key
-                                            ? 'text-foreground'
-                                            : 'text-muted-foreground',
-                                    ]"
+                                    :class="[ sortColumn === column.key ? 'text-foreground' : 'text-muted-foreground' ]"
                                 />
                             </div>
-                        </TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    <TableRow
-                        v-if="paginatedData.length === 0"
-                        class="hover:bg-transparent"
-                    >
-                        <TableCell
-                            :colspan="columns.length"
-                            class="h-24 text-center"
-                        >
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-card">
+                    <tr v-if="paginatedData.length === 0">
+                        <td :colspan="columns.length" class="h-24 text-center text-sm text-muted-foreground">
                             No results found.
-                        </TableCell>
-                    </TableRow>
-                    <TableRow v-for="(row, index) in paginatedData" :key="index">
-                        <TableCell v-for="column in columns" :key="column.key">
-                            {{ formatValue(row[column.key], column.type) }}
-                        </TableCell>
-                    </TableRow>
-                </TableBody>
-            </Table>
+                        </td>
+                    </tr>
+                    <tr v-for="(row, index) in paginatedData" :key="index" class="odd:bg-transparent even:bg-sidebar-border/5">
+                        <td v-for="column in columns" :key="column.key" class="px-4 py-3 text-sm">
+                            <slot name="cell" :row="row" :column="column">
+                                {{ formatValue(row[column.key], column.type) }}
+                            </slot>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
 
-        <!-- Pagination -->
+        <!-- Pagination (client-side only) -->
         <div
-            v-if="totalPages > 1"
+            v-if="!props.serverMode && totalPages > 1"
             class="flex items-center justify-between px-2"
         >
             <div class="text-sm text-muted-foreground">

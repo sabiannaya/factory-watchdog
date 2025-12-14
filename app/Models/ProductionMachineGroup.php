@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class ProductionMachineGroup extends Model
 {
+    use HasFactory;
     protected $table = 'production_machine_groups';
     protected $primaryKey = 'production_machine_group_id';
     public $timestamps = true;
@@ -13,13 +15,15 @@ class ProductionMachineGroup extends Model
     protected $fillable = [
         'name',
         'production_id',
-        'machine_group_id'
+        'machine_group_id',
+        'machine_count',
+        'default_target',
     ];
 
     /* ACCESSORS & MUTATORS */
     protected function getNameAttribute($value)
     {
-        return strtoupper($value);
+        return ucfirst(strtolower($value));
     }
 
     protected function setNameAttribute($value)
