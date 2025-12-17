@@ -69,6 +69,7 @@ onMounted(async () => {
             }
         } catch (e) {
             // Silently fail, use empty arrays
+            return e;
         }
     }
 });
@@ -82,7 +83,18 @@ const productionWeeklyMapped = computed(() =>
 );
 
 
-
+function formatDateTime(value: string | null | undefined): string {
+    if (!value) return '';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    return d.toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
 </script>
 
 <template>
@@ -159,7 +171,7 @@ const productionWeeklyMapped = computed(() =>
                                 <td class="px-4 py-2 text-sm">{{ log.production }}</td>
                                 <td class="px-4 py-2 text-sm">{{ log.machine_group }}</td>
                                 <td class="px-4 py-2 text-sm">{{ log.machine_index }}</td>
-                                <td class="px-4 py-2 text-sm text-muted-foreground">{{ log.recorded_at }}</td>
+                                <td class="px-4 py-2 text-sm text-muted-foreground">{{ formatDateTime(log.recorded_at) }}</td>
                                 <td class="px-4 py-2 text-sm text-right">{{ log.output }}</td>
                                 <td class="px-4 py-2 text-sm text-right">{{ log.target }}</td>
                                 <td 

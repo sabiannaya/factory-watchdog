@@ -10,6 +10,7 @@ use App\Http\Controllers\HourlyLogController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\TargetController;
 use App\Http\Controllers\ProductionDefaultController;
+use App\Http\Controllers\ProductController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -57,6 +58,15 @@ Route::prefix('data-management')->middleware(['auth', 'verified'])->name('data-m
     Route::get('aggregates/productions', [App\Http\Controllers\AggregationController::class, 'productions'])->name('aggregates.productions');
     Route::get('logs/group', [App\Http\Controllers\AggregationController::class, 'groupLogs'])->name('logs.group');
     Route::get('logs/production', [App\Http\Controllers\AggregationController::class, 'productionLogs'])->name('logs.production');
+
+    // Product settings (Setting Produk)
+    Route::get('products', [ProductController::class, 'index'])->name('products.index');
+    Route::get('products/create', [ProductController::class, 'create'])->name('products.create');
+    Route::post('products', [ProductController::class, 'store'])->name('products.store');
+    Route::get('products/{product}', [ProductController::class, 'show'])->name('products.show');
+    Route::get('products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
+    Route::put('products/{product}', [ProductController::class, 'update'])->name('products.update');
+    Route::delete('products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
 });
 
 require __DIR__.'/settings.php';

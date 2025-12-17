@@ -37,3 +37,45 @@ export interface User {
 }
 
 export type BreadcrumbItemType = BreadcrumbItem;
+
+export interface ProductItem {
+    id: number;
+    name: string;
+    thickness?: string | null;
+    ply?: string | null;
+    glue_type?: string | null;
+    qty: number;
+    notes?: string | null;
+    created_at?: string | null;
+}
+
+export interface ProductsPageProps {
+    products: {
+        data: ProductItem[];
+        links?: { 
+            next?: string | null; 
+            prev?: string | null 
+        };
+    };
+    meta?: { 
+        per_page?: number; 
+        q?: string 
+    };
+}
+
+export interface ProductFormData {
+    name: string;
+    thickness: string;
+    ply: string;
+    glue_type: string;
+    qty: number;
+    notes: string;
+}
+
+export interface ProductFormErrors {
+    name?: string;
+    thickness?: string;
+    ply?: string;
+    glue_type?: string;
+    qty?: string;
+}

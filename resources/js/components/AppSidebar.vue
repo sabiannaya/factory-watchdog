@@ -88,6 +88,15 @@ const footerNavItems: NavItem[] = [
                         </SidebarMenuButton>
                     </SidebarMenuItem>
 
+                    <SidebarMenuItem>
+                        <SidebarMenuButton as-child :tooltip="'Products (Setting Produk)'">
+                            <Link href="/data-management/products">
+                                <Folder />
+                                <span>Products</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+
 
                     <!-- kept core data management links here; summaries/logs moved to dedicated group -->
                 </SidebarMenu>
