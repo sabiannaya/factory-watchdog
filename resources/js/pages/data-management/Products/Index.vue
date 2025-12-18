@@ -5,6 +5,8 @@ import { ref } from 'vue';
 import { type BreadcrumbItem, type ProductsPageProps } from '@/types';
 import IconActionButton from '@/components/ui/IconActionButton.vue';
 import { Eye, Edit2, Trash2 } from 'lucide-vue-next';
+import ToastNotifications from '@/components/ToastNotifications.vue';
+import { useToast } from '@/composables/useToast';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Data Management', href: '/data-management/production' },
@@ -13,6 +15,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const props = defineProps<ProductsPageProps>();
 
+const { success } = useToast();
+
 const dataSource = props.products?.data ?? [];
 const loading = ref(false);
 
@@ -20,9 +24,14 @@ const goCreate = () => router.get('/data-management/products/create');
 const goShow = (id: number | string) => router.get(`/data-management/products/${id}`);
 const goEdit = (id: number | string) => router.get(`/data-management/products/${id}/edit`);
 
-const confirmDelete = (id: number | string) => {
+const confirmDelete = (id: number | string, name: string) => {
   if (!window.confirm('Delete this product?')) return;
-  router.visit(`/data-management/products/${id}`, { method: 'delete' });
+  router.visit(`/data-management/products/${id}`, { 
+    method: 'delete',
+    onSuccess: () => {
+      success('Product deleted', `${name} has been deleted successfully`);
+    },
+  });
 };
 
 const goPrev = () => {
@@ -81,7 +90,7 @@ router.on('finish', () => (loading.value = false));
                     <div class="flex items-center gap-4">
                       <IconActionButton :icon="Eye" label="Show" color="blue" :onClick="() => goShow(row.id)" />
                       <IconActionButton :icon="Edit2" label="Edit" color="amber" :onClick="() => goEdit(row.id)" />
-                      <IconActionButton :icon="Trash2" label="Delete" color="red" :onClick="() => confirmDelete(row.id)" />
+                      <IconActionButton :icon="Trash2" label="Delete" color="red" :onClick="() => confirmDelete(row.id, row.name)" />
                     </div>
                   </td>
                 </tr>
@@ -96,5 +105,7 @@ router.on('finish', () => (loading.value = false));
         </div>
       </div>
     </div>
+
+    <ToastNotifications />
   </AppLayout>
 </template>

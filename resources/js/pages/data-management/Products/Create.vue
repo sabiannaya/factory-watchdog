@@ -3,21 +3,23 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 import { type BreadcrumbItem, type ProductFormData, type ProductFormErrors } from '@/types';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import AlertDialog from '@/components/ui/alert-dialog/AlertDialog.vue';
+import AlertDialogAction from '@/components/ui/alert-dialog/AlertDialogAction.vue';
+import AlertDialogCancel from '@/components/ui/alert-dialog/AlertDialogCancel.vue';
+import AlertDialogContent from '@/components/ui/alert-dialog/AlertDialogContent.vue';
+import AlertDialogDescription from '@/components/ui/alert-dialog/AlertDialogDescription.vue';
+import AlertDialogHeader from '@/components/ui/alert-dialog/AlertDialogHeader.vue';
+import AlertDialogTitle from '@/components/ui/alert-dialog/AlertDialogTitle.vue';
+import ToastNotifications from '@/components/ToastNotifications.vue';
+import { useToast } from '@/composables/useToast';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Data Management', href: '/data-management/production' },
     { title: 'Products', href: '/data-management/products' },
     { title: 'Create', href: '/data-management/products/create' },
 ];
+
+const { success } = useToast();
 
 const form = ref<ProductFormData>({ name: '', thickness: '', ply: '', glue_type: '', qty: 0, notes: '' });
 const errors = ref<ProductFormErrors>({});
@@ -49,6 +51,9 @@ const handleSubmit = () => {
 const confirmSubmit = () => {
     submitting.value = true;
     router.post('/data-management/products', form.value, {
+        onSuccess: () => {
+            success('Product created', `${form.value.name} has been created successfully`);
+        },
         onFinish: () => (submitting.value = false),
     });
 };
@@ -131,5 +136,7 @@ const confirmSubmit = () => {
         </div>
       </AlertDialogContent>
     </AlertDialog>
+
+    <ToastNotifications />
   </AppLayout>
 </template>

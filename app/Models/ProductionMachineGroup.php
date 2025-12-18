@@ -2,14 +2,18 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ProductionMachineGroup extends Model
 {
     use HasFactory;
+
     protected $table = 'production_machine_groups';
+
     protected $primaryKey = 'production_machine_group_id';
+
     public $timestamps = true;
 
     protected $fillable = [
@@ -19,11 +23,34 @@ class ProductionMachineGroup extends Model
         'machine_count',
         'default_target',
         'default_targets',
+        'created_by',
+        'modified_by',
     ];
 
     protected $casts = [
         'default_targets' => 'array',
     ];
+
+    protected static function booted()
+    {
+        static::creating(function ($model) {
+            $model->created_by = auth()->id();
+        });
+
+        static::updating(function ($model) {
+            $model->modified_by = auth()->id();
+        });
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function modifier(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'modified_by');
+    }
 
     /* ACCESSORS & MUTATORS */
     protected function getNameAttribute($value)
@@ -41,6 +68,7 @@ class ProductionMachineGroup extends Model
     {
         return $this->belongsTo(Production::class, 'production_id', 'production_id');
     }
+
     public function machineGroup()
     {
         return $this->belongsTo(MachineGroup::class, 'machine_group_id', 'machine_group_id');

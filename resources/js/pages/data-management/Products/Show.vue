@@ -10,8 +10,12 @@ import AlertDialogContent from '@/components/ui/alert-dialog/AlertDialogContent.
 import AlertDialogDescription from '@/components/ui/alert-dialog/AlertDialogDescription.vue';
 import AlertDialogHeader from '@/components/ui/alert-dialog/AlertDialogHeader.vue';
 import AlertDialogTitle from '@/components/ui/alert-dialog/AlertDialogTitle.vue';
+import ToastNotifications from '@/components/ToastNotifications.vue';
+import { useToast } from '@/composables/useToast';
 
 const props = defineProps<{ product: ProductItem }>();
+
+const { success } = useToast();
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Data Management', href: '/data-management/production' },
@@ -37,6 +41,9 @@ const confirmDelete = () => {
     deleting.value = true;
     router.visit(`/data-management/products/${props.product.id}`, {
         method: 'delete',
+        onSuccess: () => {
+            success('Product deleted', `${props.product.name} has been deleted successfully`);
+        },
         onFinish: () => (deleting.value = false),
     });
 };
@@ -123,5 +130,7 @@ const confirmDelete = () => {
                 </div>
             </AlertDialogContent>
         </AlertDialog>
+
+        <ToastNotifications />
     </AppLayout>
 </template>

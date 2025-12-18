@@ -2,15 +2,19 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 class HourlyLog extends Model
 {
     use HasFactory;
+
     protected $table = 'hourly_logs';
+
     protected $primaryKey = 'hourly_log_id';
+
     public $timestamps = true;
 
     protected $fillable = [
@@ -26,12 +30,35 @@ class HourlyLog extends Model
         'grade',
         'ukuran',
         'keterangan',
+        'created_by',
+        'modified_by',
     ];
 
     protected $casts = [
         'recorded_at' => 'datetime',
         'grades' => 'array',
     ];
+
+    protected static function booted()
+    {
+        static::creating(function ($model) {
+            $model->created_by = auth()->id();
+        });
+
+        static::updating(function ($model) {
+            $model->modified_by = auth()->id();
+        });
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function modifier(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'modified_by');
+    }
 
     public function productionMachineGroup()
     {
@@ -45,6 +72,7 @@ class HourlyLog extends Model
     {
         if ($value === null) {
             $this->attributes['recorded_at'] = null;
+
             return;
         }
 

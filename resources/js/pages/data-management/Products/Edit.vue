@@ -3,17 +3,19 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 import { type BreadcrumbItem, type ProductFormErrors, type ProductItem } from '@/types';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import AlertDialog from '@/components/ui/alert-dialog/AlertDialog.vue';
+import AlertDialogAction from '@/components/ui/alert-dialog/AlertDialogAction.vue';
+import AlertDialogCancel from '@/components/ui/alert-dialog/AlertDialogCancel.vue';
+import AlertDialogContent from '@/components/ui/alert-dialog/AlertDialogContent.vue';
+import AlertDialogDescription from '@/components/ui/alert-dialog/AlertDialogDescription.vue';
+import AlertDialogHeader from '@/components/ui/alert-dialog/AlertDialogHeader.vue';
+import AlertDialogTitle from '@/components/ui/alert-dialog/AlertDialogTitle.vue';
+import ToastNotifications from '@/components/ToastNotifications.vue';
+import { useToast } from '@/composables/useToast';
 
 const props = defineProps<{ product: ProductItem }>();
+
+const { success } = useToast();
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Data Management', href: '/data-management/production' },
@@ -59,6 +61,9 @@ const handleSubmit = () => {
 const confirmSubmit = () => {
     submitting.value = true;
     router.put(`/data-management/products/${form.value.id}`, form.value, {
+        onSuccess: () => {
+            success('Product updated', `${form.value.name} has been updated successfully`);
+        },
         onFinish: () => (submitting.value = false),
     });
 };
@@ -141,5 +146,7 @@ const confirmSubmit = () => {
         </div>
       </AlertDialogContent>
     </AlertDialog>
+
+    <ToastNotifications />
   </AppLayout>
-  </template>
+</template>

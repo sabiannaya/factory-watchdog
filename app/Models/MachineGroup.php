@@ -2,25 +2,52 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MachineGroup extends Model
 {
     use HasFactory;
+
     protected $table = 'machine_groups';
+
     protected $primaryKey = 'machine_group_id';
+
     public $timestamps = true;
 
     protected $fillable = [
         'name',
         'description',
         'input_config',
+        'created_by',
+        'modified_by',
     ];
 
     protected $casts = [
         'input_config' => 'array',
     ];
+
+    protected static function booted()
+    {
+        static::creating(function ($model) {
+            $model->created_by = auth()->id();
+        });
+
+        static::updating(function ($model) {
+            $model->modified_by = auth()->id();
+        });
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function modifier(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'modified_by');
+    }
 
     /**
      * Input Config Structure Examples:
@@ -69,6 +96,7 @@ class MachineGroup extends Model
     public function getInputFields(): array
     {
         $config = $this->input_config ?? [];
+
         return $config['fields'] ?? ['qty'];
     }
 
@@ -88,6 +116,7 @@ class MachineGroup extends Model
     public function getGradeTypes(): ?array
     {
         $config = $this->input_config ?? [];
+
         return $config['grade_types'] ?? null;
     }
 
@@ -97,6 +126,7 @@ class MachineGroup extends Model
     public function getInputType(): string
     {
         $config = $this->input_config ?? [];
+
         return $config['type'] ?? 'qty_only';
     }
 }
