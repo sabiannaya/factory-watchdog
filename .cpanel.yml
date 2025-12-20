@@ -1,0 +1,17 @@
+deployment:
+  tasks:
+    # 1. Pastikan folder subdomain kosong sebelum copy
+    - rm -rf /home/dusatekc/public_html/mingook/*
+
+    # 2. Copy isi repo ke folder subdomain
+    - cp -r /home/dusatekc/repositories/min-gook/* /home/dusatekc/public_html/mingook/
+
+    # 3. Install dependency Node.js
+    - cd /home/dusatekc/public_html/mingook
+    - npm install
+
+    # 4. Update dependency PHP (Composer)
+    - composer update --no-interaction --prefer-dist
+
+    # 5. Jalankan build/dev script
+    - composer run dev
