@@ -4,7 +4,7 @@ deployment:
     - rm -rf /home/dusatekc/public_html/mingook/*
 
     # 2. Copy isi repo ke folder subdomain
-    - cp -r /home/dusatekc/repositories/min-gook/* /home/dusatekc/mingook.dusatek.com
+    - cp -r /home/dusatekc/repositories/mingook/* /home/dusatekc/mingook.dusatek.com
 
     # 3. Install dependency Node.js
     - cd /home/dusatekc/mingook.dusatek.com
