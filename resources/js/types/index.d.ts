@@ -79,3 +79,45 @@ export interface ProductFormErrors {
     glue_type?: string;
     qty?: string;
 }
+
+export interface GlueSpreaderItem {
+    id: number;
+    name: string;
+    model?: string | null;
+    capacity_ml?: number | null;
+    speed_mpm?: number | null;
+    status?: string | null;
+    notes?: string | null;
+    created_at?: string | null;
+}
+
+export interface GlueSpreadersPageProps {
+    glueSpreaders: {
+        data: GlueSpreaderItem[];
+        links?: {
+            next?: string | null;
+            prev?: string | null;
+        };
+    };
+    meta?: {
+        per_page?: number;
+        q?: string;
+    };
+}
+
+export interface GlueSpreaderFormData {
+    name: string;
+    model: string;
+    capacity_ml: number | null;
+    speed_mpm: number | null;
+    status: string;
+    notes: string;
+}
+
+export interface GlueSpreaderFormErrors {
+    name?: string;
+    model?: string;
+    capacity_ml?: string;
+    speed_mpm?: string;
+    status?: string;
+}

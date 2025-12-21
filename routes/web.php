@@ -67,6 +67,15 @@ Route::prefix('data-management')->middleware(['auth', 'verified'])->name('data-m
     Route::get('products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
     Route::put('products/{product}', [ProductController::class, 'update'])->name('products.update');
     Route::delete('products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+
+    // Glue Spreader settings
+    Route::get('glue-spreaders', [App\Http\Controllers\GlueSpreaderController::class, 'index'])->name('glue-spreaders.index');
+    Route::get('glue-spreaders/create', [App\Http\Controllers\GlueSpreaderController::class, 'create'])->name('glue-spreaders.create');
+    Route::post('glue-spreaders', [App\Http\Controllers\GlueSpreaderController::class, 'store'])->name('glue-spreaders.store');
+    Route::get('glue-spreaders/{glue_spreader}', [App\Http\Controllers\GlueSpreaderController::class, 'show'])->name('glue-spreaders.show');
+    Route::get('glue-spreaders/{glue_spreader}/edit', [App\Http\Controllers\GlueSpreaderController::class, 'edit'])->name('glue-spreaders.edit');
+    Route::put('glue-spreaders/{glue_spreader}', [App\Http\Controllers\GlueSpreaderController::class, 'update'])->name('glue-spreaders.update');
+    Route::delete('glue-spreaders/{glue_spreader}', [App\Http\Controllers\GlueSpreaderController::class, 'destroy'])->name('glue-spreaders.destroy');
 });
 
 require __DIR__.'/settings.php';
