@@ -1,19 +1,12 @@
 deployment:
   tasks:
-    # 1. Ensure the custom subdomain folder is empty
     - rm -rf /home/dusatekc/mingook.dusatek.com/*
-
-    # 2. Copy the repo contents to your custom folder
-    - cp -r /home/dusatekc/repositories/mingook/* /home/dusatekc/mingook.dusatek.com/
-
-    # 3. Enter folder and run Node tasks
-    # NOTE: We use the 'source' command to tell cPanel where 'npm' is.
-    # Replace '20' with your specific Node version (e.g., 18, 16) if different.
+    - cp -r /home/dusatekc/repositories/min-gook/* /home/dusatekc/mingook.dusatek.com/
     - cd /home/dusatekc/mingook.dusatek.com
-    - source /home/dusatekc/nodevenv/mingook.dusatek.com/20/bin/activate && npm install
+    
+    # Compile Vue/Assets
+    - npm install
+    - npm run build 
 
-    # 4. Update PHP dependencies via Composer
-    - composer update --no-interaction --prefer-dist
-
-    # 5. Run your build or dev script
-    - composer run dev
+    # Install PHP dependencies
+    - composer install --no-interaction --optimize-autoloader --no-dev
