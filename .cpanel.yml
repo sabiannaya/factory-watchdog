@@ -1,7 +1,7 @@
 deployment:
   tasks:
     - rm -rf /home/dusatekc/mingook.dusatek.com/*
-    - cp -r /home/dusatekc/repositories/min-gook/* /home/dusatekc/mingook.dusatek.com/
+    - cp -r /home/dusatekc/repositories/mingook/* /home/dusatekc/mingook.dusatek.com/
     - cd /home/dusatekc/mingook.dusatek.com
     
     # Compile Vue/Assets
