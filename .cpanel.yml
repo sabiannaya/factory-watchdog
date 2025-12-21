@@ -1,17 +1,19 @@
 deployment:
   tasks:
-    # 1. Pastikan folder subdomain kosong sebelum copy
-    - rm -rf /home/dusatekc/public_html/mingook/*
+    # 1. Ensure the custom subdomain folder is empty
+    - rm -rf /home/dusatekc/mingook.dusatek.com/*
 
-    # 2. Copy isi repo ke folder subdomain
-    - cp -r /home/dusatekc/repositories/mingook/* /home/dusatekc/mingook.dusatek.com
+    # 2. Copy the repo contents to your custom folder
+    - cp -r /home/dusatekc/repositories/mingook/* /home/dusatekc/mingook.dusatek.com/
 
-    # 3. Install dependency Node.js
+    # 3. Enter folder and run Node tasks
+    # NOTE: We use the 'source' command to tell cPanel where 'npm' is.
+    # Replace '20' with your specific Node version (e.g., 18, 16) if different.
     - cd /home/dusatekc/mingook.dusatek.com
-    - npm install
+    - source /home/dusatekc/nodevenv/mingook.dusatek.com/20/bin/activate && npm install
 
-    # 4. Update dependency PHP (Composer)
+    # 4. Update PHP dependencies via Composer
     - composer update --no-interaction --prefer-dist
 
-    # 5. Jalankan build/dev script
+    # 5. Run your build or dev script
     - composer run dev
