@@ -1,13 +1,15 @@
 deployment:
   tasks:
-    # 1. Clean and Copy code
     - rm -rf /home/dusatekc/mingook.dusatek.com/*
     - cp -r /home/dusatekc/repositories/mingook/* /home/dusatekc/mingook.dusatek.com/
     - cd /home/dusatekc/mingook.dusatek.com
 
-    # 2. Build Vue Assets using the Node virtual environment
+    # 1. Install dependencies
     - source /home/dusatekc/nodevenv/mingook.dusatek.com/20/bin/activate && npm install
-    - source /home/dusatekc/nodevenv/mingook.dusatek.com/20/bin/activate && npm run build
 
-    # 3. Finalize Laravel PHP dependencies
+    # 2. Build with Memory Limit (The Fix)
+    # We tell Node to stay under 512MB to avoid the "Out of Memory" crash
+    - source /home/dusatekc/nodevenv/mingook.dusatek.com/20/bin/activate && export NODE_OPTIONS="--max-old-space-size=512" && npm run build
+
+    # 3. Laravel Setup
     - composer install --no-interaction --optimize-autoloader --no-dev
