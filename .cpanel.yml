@@ -1,14 +1,13 @@
 deployment:
   tasks:
-    # 1. Clear and Copy
+    # 1. Clean and Copy code
     - rm -rf /home/dusatekc/mingook.dusatek.com/*
     - cp -r /home/dusatekc/repositories/mingook/* /home/dusatekc/mingook.dusatek.com/
-
-    # 2. Find and Run NPM
     - cd /home/dusatekc/mingook.dusatek.com
-    # This command finds the path to npm and runs 'install' in one go
-    - $(which npm || find /opt/cpanel -name npm | head -n 1) install
-    - $(which npm || find /opt/cpanel -name npm | head -n 1) run build
 
-    # 3. Laravel Setup
+    # 2. Build Vue Assets using the Node virtual environment
+    - source /home/dusatekc/nodevenv/mingook.dusatek.com/20/bin/activate && npm install
+    - source /home/dusatekc/nodevenv/mingook.dusatek.com/20/bin/activate && npm run build
+
+    # 3. Finalize Laravel PHP dependencies
     - composer install --no-interaction --optimize-autoloader --no-dev
