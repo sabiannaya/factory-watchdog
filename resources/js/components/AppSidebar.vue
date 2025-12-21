@@ -16,7 +16,7 @@ import {
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid, Clock, BarChart2, Layers, Tool } from 'lucide-vue-next';
+import { BookOpen, Folder, LayoutGrid, Clock, BarChart2, Layers, Wrench } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
 const mainNavItems: NavItem[] = [
@@ -100,7 +100,7 @@ const footerNavItems: NavItem[] = [
                     <SidebarMenuItem>
                         <SidebarMenuButton as-child :tooltip="'Glue Spreaders'">
                             <Link href="/data-management/glue-spreaders">
-                                <Tool />
+                                <Wrench />
                                 <span>Glue Spreaders</span>
                             </Link>
                         </SidebarMenuButton>
