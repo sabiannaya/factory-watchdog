@@ -1,15 +1,12 @@
 deployment:
   tasks:
+    # 1. Clear and Copy (The files now already contain the Vue build)
     - rm -rf /home/dusatekc/mingook.dusatek.com/*
     - cp -r /home/dusatekc/repositories/mingook/* /home/dusatekc/mingook.dusatek.com/
     - cd /home/dusatekc/mingook.dusatek.com
 
-    # 1. Install dependencies
-    - source /home/dusatekc/nodevenv/mingook.dusatek.com/20/bin/activate && npm install
+    # 2. Skip NPM entirely! (No more Out of Memory errors)
 
-    # 2. Build with Memory Limit (The Fix)
-    # We tell Node to stay under 512MB to avoid the "Out of Memory" crash
-    - source /home/dusatekc/nodevenv/mingook.dusatek.com/20/bin/activate && export NODE_OPTIONS="--max-old-space-size=512" && npm run build
-
-    # 3. Laravel Setup
+    # 3. Finalize Laravel
     - composer install --no-interaction --optimize-autoloader --no-dev
+    - php artisan optimize:clear
