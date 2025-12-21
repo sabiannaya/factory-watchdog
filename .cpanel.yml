@@ -1,12 +1,15 @@
 deployment:
   tasks:
+    # 1. Clear the folder
     - rm -rf /home/dusatekc/mingook.dusatek.com/*
-    - cp -r /home/dusatekc/repositories/mingook/* /home/dusatekc/mingook.dusatek.com/
-    - cd /home/dusatekc/mingook.dusatek.com
-    
-    # Compile Vue/Assets
-    - npm install
-    - npm run build 
 
-    # Install PHP dependencies
+    # 2. Copy code from Git to the folder
+    - cp -r /home/dusatekc/repositories/min-gook/* /home/dusatekc/mingook.dusatek.com/
+
+    # 3. Build the Vue Assets (Node is used only here)
+    - cd /home/dusatekc/mingook.dusatek.com
+    - /usr/local/bin/npm install
+    - /usr/local/bin/npm run build 
+
+    # 4. Finish the Laravel Setup (PHP)
     - composer install --no-interaction --optimize-autoloader --no-dev
