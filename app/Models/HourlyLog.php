@@ -19,16 +19,17 @@ class HourlyLog extends Model
 
     protected $fillable = [
         'production_machine_group_id',
-        'machine_index',
         'recorded_at',
-        'output_value',
-        'target_value',
-        'qty',
-        'qty_normal',
-        'qty_reject',
-        'grades',
-        'grade',
-        'ukuran',
+        'output_qty_normal',
+        'output_qty_reject',
+        'output_grades',
+        'output_grade',
+        'output_ukuran',
+        'target_qty_normal',
+        'target_qty_reject',
+        'target_grades',
+        'target_grade',
+        'target_ukuran',
         'keterangan',
         'created_by',
         'modified_by',
@@ -36,7 +37,8 @@ class HourlyLog extends Model
 
     protected $casts = [
         'recorded_at' => 'datetime',
-        'grades' => 'array',
+        'output_grades' => 'array',
+        'target_grades' => 'array',
     ];
 
     protected static function booted()
@@ -93,67 +95,50 @@ class HourlyLog extends Model
     }
 
     /**
-     * Calculate output_value from flexible input fields.
-     * This aggregates all quantity-related fields into a single output_value.
+     * Calculate total output value by summing all output fields.
      */
-    public function calculateOutputValue(): int
+    public function getTotalOutputAttribute(): int
     {
         $total = 0;
 
-        // Simple qty
-        if ($this->qty !== null) {
-            $total += (int) $this->qty;
+        if ($this->output_qty_normal !== null) {
+            $total += (int) $this->output_qty_normal;
         }
 
-        // Normal and reject quantities
-        if ($this->qty_normal !== null) {
-            $total += (int) $this->qty_normal;
-        }
-        if ($this->qty_reject !== null) {
-            $total += (int) $this->qty_reject;
+        if ($this->output_qty_reject !== null) {
+            $total += (int) $this->output_qty_reject;
         }
 
-        // Grades (sum all grade values)
-        if ($this->grades !== null && is_array($this->grades)) {
-            foreach ($this->grades as $gradeValue) {
+        if ($this->output_grades !== null && is_array($this->output_grades)) {
+            foreach ($this->output_grades as $gradeValue) {
                 $total += (int) ($gradeValue ?? 0);
             }
         }
-
-        // Grade with qty (for Film type - qty is separate field)
-        // Note: grade field itself is just a label, qty is the actual quantity
-
-        // For CNC/DS2, qty is already included above
 
         return $total;
     }
 
     /**
-     * Boot method to auto-calculate output_value before saving.
+     * Calculate total target value by summing all target fields.
      */
-    protected static function boot(): void
+    public function getTotalTargetAttribute(): int
     {
-        parent::boot();
+        $total = 0;
 
-        static::saving(function (self $log) {
-            // Only auto-calculate if output_value is not explicitly set
-            // or if it's 0 and we have other input fields
-            if ($log->output_value === null || ($log->output_value === 0 && $log->hasInputData())) {
-                $log->output_value = $log->calculateOutputValue();
+        if ($this->target_qty_normal !== null) {
+            $total += (int) $this->target_qty_normal;
+        }
+
+        if ($this->target_qty_reject !== null) {
+            $total += (int) $this->target_qty_reject;
+        }
+
+        if ($this->target_grades !== null && is_array($this->target_grades)) {
+            foreach ($this->target_grades as $gradeValue) {
+                $total += (int) ($gradeValue ?? 0);
             }
-        });
-    }
+        }
 
-    /**
-     * Check if this log has any input data.
-     */
-    public function hasInputData(): bool
-    {
-        return $this->qty !== null
-            || $this->qty_normal !== null
-            || $this->qty_reject !== null
-            || ($this->grades !== null && ! empty($this->grades))
-            || $this->grade !== null
-            || $this->ukuran !== null;
+        return $total;
     }
 }

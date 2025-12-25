@@ -10,12 +10,13 @@ use Illuminate\Support\Facades\DB;
 class AggregateHourlyLogs extends Command
 {
     protected $signature = 'logs:aggregate-daily';
+
     protected $description = 'Aggregate hourly logs into daily targets';
 
     public function handle(): int
     {
         // Aggregate for last 7 days in Asia/Jakarta timezone
-        $dates = collect(range(-7, 0))->map(fn($d) => Carbon::now('Asia/Jakarta')->addDays($d)->toDateString());
+        $dates = collect(range(-7, 0))->map(fn ($d) => Carbon::now('Asia/Jakarta')->addDays($d)->toDateString());
 
         foreach ($dates as $date) {
             // Get or create daily target for this date

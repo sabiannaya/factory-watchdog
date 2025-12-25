@@ -26,7 +26,6 @@ const props = defineProps<{
         daily_values: Array<{
             field_name: string;
             target_value: number | null;
-            actual_value: number | null;
             keterangan: string | null;
         }>;
     }> | null;
@@ -49,7 +48,7 @@ watch([selectedProduction, selectedDate], ([prodId, date]) => {
     );
 }, { immediate: false });
 
-const getValueForField = (machineGroupId: number, fieldName: string, type: 'target' | 'actual' | 'keterangan') => {
+const getValueForField = (machineGroupId: number, fieldName: string, type: 'target' | 'keterangan') => {
     const mg = props.machineGroups?.find((m) => m.production_machine_group_id === machineGroupId);
     if (!mg) return null;
 
@@ -62,7 +61,7 @@ const getValueForField = (machineGroupId: number, fieldName: string, type: 'targ
         return null;
     }
 
-    return type === 'target' ? value.target_value : type === 'actual' ? value.actual_value : value.keterangan;
+    return type === 'target' ? value.target_value : value.keterangan;
 };
 
 const getDefaultTarget = (machineGroupId: number, fieldName: string) => {
@@ -76,15 +75,15 @@ const getDefaultTarget = (machineGroupId: number, fieldName: string) => {
         <Head title="Targets Management" />
 
         <div class="p-4 space-y-4">
-            <div class="flex items-center justify-between">
+            <!-- <div class="flex items-center justify-between">
                 <div>
-                    <h1 class="text-3xl font-bold">Targets Management</h1>
-                    <p class="text-muted-foreground dark:text-muted-foreground mt-1">
+                    <h1 class="text-2xl font-semibold">Targets Management</h1>
+                    <p class="text-sm text-muted-foreground">
                         View and manage daily targets for production machine groups
                     </p>
                 </div>
                 <Link href="/data-management/targets/create" class="btn">Create Daily Targets</Link>
-            </div>
+            </div> -->
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
@@ -130,37 +129,34 @@ const getDefaultTarget = (machineGroupId: number, fieldName: string) => {
                         </Link>
                     </div>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <!-- Target Column -->
-                        <div>
-                            <h3 class="font-semibold mb-4 pb-2 border-b-2 border-sky-500 dark:border-sky-600">Daily Targets</h3>
-                            <div class="space-y-3">
-                                <div v-for="field in mg.fields" :key="`${mg.production_machine_group_id}-target-${field}`" class="rounded-lg bg-muted/40 dark:bg-muted/40 p-3">
-                                    <p class="text-sm font-medium mb-1 capitalize">{{ field.replace(/_/g, ' ') }}</p>
-                                    <p class="text-sm">
-                                        Target: <span class="font-semibold">{{ getValueForField(mg.production_machine_group_id, field, 'target') ?? 'Not set' }}</span>
-                                    </p>
-                                    <p class="text-xs text-muted-foreground dark:text-muted-foreground mt-1">
-                                        Default: {{ getDefaultTarget(mg.production_machine_group_id, field) ?? 'No default' }}
-                                    </p>
-                                </div>
+                    <div class="space-y-4">
+                        <!-- Target Fields -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            <div v-for="field in mg.fields" :key="`${mg.production_machine_group_id}-target-${field}`" class="rounded-lg bg-muted/40 dark:bg-muted/40 p-3">
+                                <p class="text-sm font-medium mb-1 capitalize">{{ field.replace(/_/g, ' ') }}</p>
+                                <p class="text-lg font-semibold">
+                                    {{ getValueForField(mg.production_machine_group_id, field, 'target') ?? 'Not set' }}
+                                </p>
+                                <p class="text-xs text-muted-foreground dark:text-muted-foreground mt-1">
+                                    Default: {{ getDefaultTarget(mg.production_machine_group_id, field) ?? 'No default' }}
+                                </p>
+                                <p v-if="getValueForField(mg.production_machine_group_id, field, 'keterangan')" class="text-xs text-muted-foreground dark:text-muted-foreground mt-2 italic">
+                                    {{ getValueForField(mg.production_machine_group_id, field, 'keterangan') }}
+                                </p>
                             </div>
                         </div>
 
-                        <!-- Actual Output Column -->
-                        <div>
-                            <h3 class="font-semibold mb-4 pb-2 border-b-2 border-emerald-500 dark:border-emerald-600">Actual Output</h3>
-                            <div class="space-y-3">
-                                <div v-for="field in mg.fields" :key="`${mg.production_machine_group_id}-actual-${field}`" class="rounded-lg bg-muted/40 dark:bg-muted/40 p-3">
-                                    <p class="text-sm font-medium mb-1 capitalize">{{ field.replace(/_/g, ' ') }}</p>
-                                    <p class="text-sm">
-                                        Actual: <span class="font-semibold">{{ getValueForField(mg.production_machine_group_id, field, 'actual') ?? 'Not recorded' }}</span>
-                                    </p>
-                                    <p v-if="getValueForField(mg.production_machine_group_id, field, 'keterangan')" class="text-xs text-muted-foreground dark:text-muted-foreground mt-1 italic">
-                                        {{ getValueForField(mg.production_machine_group_id, field, 'keterangan') }}
-                                    </p>
-                                </div>
-                            </div>
+                        <!-- Link to record output -->
+                        <div class="pt-3 border-t border-sidebar-border/40">
+                            <Link
+                                :href="`/input/create?date=${selectedDate}&production_id=${selectedProduction}`"
+                                class="text-sm text-primary hover:underline inline-flex items-center gap-1"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                </svg>
+                                Record hourly output
+                            </Link>
                         </div>
                     </div>
                 </div>

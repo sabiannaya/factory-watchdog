@@ -15,17 +15,29 @@ class GlueSpreader extends Model
     protected $fillable = [
         'name',
         'model',
-        'capacity_ml',
-        'speed_mpm',
-        'status',
+        // English attribute names (database / API)
+        'glue_kg',
+        'hardener_kg',
+        'powder_kg',
+        'colorant_kg',
+        'anti_termite_kg',
+        'viscosity',
+        'washes_per_day',
+        'glue_loss_kg',
         'notes',
         'created_by',
         'modified_by',
     ];
 
     protected $casts = [
-        'capacity_ml' => 'integer',
-        'speed_mpm' => 'integer',
+        // numeric casts for measurements
+        'glue_kg' => 'float',
+        'hardener_kg' => 'float',
+        'powder_kg' => 'float',
+        'colorant_kg' => 'float',
+        'anti_termite_kg' => 'float',
+        'glue_loss_kg' => 'float',
+        'washes_per_day' => 'integer',
     ];
 
     protected static function booted()

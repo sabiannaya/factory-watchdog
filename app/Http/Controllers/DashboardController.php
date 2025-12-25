@@ -2,15 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Production;
-use App\Models\MachineGroup;
 use App\Models\DailyTarget;
 use App\Models\HourlyLog;
-use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Illuminate\Support\Facades\DB;
+use App\Models\MachineGroup;
+use App\Models\Production;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Inertia\Inertia;
 
 class DashboardController extends Controller
 {
@@ -20,13 +19,13 @@ class DashboardController extends Controller
         $totalProductions = Production::count();
         $activeProductions = Production::where('status', 'active')->count();
         $totalMachineGroups = MachineGroup::count();
-        
+
         // Last 7 days trend (anchor in Asia/Jakarta)
         $sevenDaysAgo = Carbon::now('Asia/Jakarta')->subDays(7)->toDateString();
         $dailyTrends = DailyTarget::where('date', '>=', $sevenDaysAgo)
             ->orderBy('date', 'asc')
             ->get(['date', 'target_value', 'actual_value'])
-            ->map(fn($d) => [
+            ->map(fn ($d) => [
                 'date' => $d->date->format('m/d'),
                 'target' => (int) $d->target_value,
                 'actual' => (int) $d->actual_value,
@@ -38,8 +37,8 @@ class DashboardController extends Controller
         $todayTarget = DailyTarget::whereDate('date', $today)->first();
         $todayActual = $todayTarget?->actual_value ?? 0;
         $todayTargetValue = $todayTarget?->target_value ?? 0;
-        $todayPerformance = $todayTargetValue > 0 
-            ? round(($todayActual / $todayTargetValue) * 100, 1) 
+        $todayPerformance = $todayTargetValue > 0
+            ? round(($todayActual / $todayTargetValue) * 100, 1)
             : 0;
 
         // Recent hourly logs (last 10)
@@ -47,7 +46,7 @@ class DashboardController extends Controller
             ->orderBy('recorded_at', 'desc')
             ->limit(10)
             ->get()
-            ->map(fn($log) => [
+            ->map(fn ($log) => [
                 'production' => $log->productionMachineGroup->production->production_name ?? '-',
                 'machine_group' => $log->productionMachineGroup->machineGroup->name ?? '-',
                 'machine_index' => $log->machine_index,
@@ -67,7 +66,7 @@ class DashboardController extends Controller
             ->selectRaw('mg.name as machine_group_name, COALESCE(SUM(hl.output_value),0) as total_output')
             ->orderByDesc('total_output')
             ->get()
-            ->map(fn($r) => ['machine_group' => $r->machine_group_name, 'total_output' => (float) $r->total_output])
+            ->map(fn ($r) => ['machine_group' => $r->machine_group_name, 'total_output' => (float) $r->total_output])
             ->toArray();
 
         // Production totals for last 7 days (anchor in Asia/Jakarta -> convert to UTC)
@@ -80,7 +79,7 @@ class DashboardController extends Controller
             ->selectRaw('p.production_name, COALESCE(SUM(hl.output_value),0) as total_output')
             ->orderByDesc('total_output')
             ->get()
-            ->map(fn($r) => ['production' => $r->production_name, 'total_output' => (float) $r->total_output])
+            ->map(fn ($r) => ['production' => $r->production_name, 'total_output' => (float) $r->total_output])
             ->toArray();
 
         Log::debug('Dashboard returning aggregates', ['groupDistribution' => count($groupDistribution), 'productionWeekly' => count($productionWeekly)]);
@@ -116,7 +115,7 @@ class DashboardController extends Controller
             ->selectRaw('mg.name as machine_group_name, COALESCE(SUM(hl.output_value),0) as total_output')
             ->orderByDesc('total_output')
             ->get()
-            ->map(fn($r) => ['machine_group' => $r->machine_group_name, 'total_output' => (float) $r->total_output])
+            ->map(fn ($r) => ['machine_group' => $r->machine_group_name, 'total_output' => (float) $r->total_output])
             ->toArray();
 
         $since7 = Carbon::now('Asia/Jakarta')->subDays(7)->setTimezone('UTC');
@@ -128,7 +127,7 @@ class DashboardController extends Controller
             ->selectRaw('p.production_name, COALESCE(SUM(hl.output_value),0) as total_output')
             ->orderByDesc('total_output')
             ->get()
-            ->map(fn($r) => ['production' => $r->production_name, 'total_output' => (float) $r->total_output])
+            ->map(fn ($r) => ['production' => $r->production_name, 'total_output' => (float) $r->total_output])
             ->toArray();
 
         return response()->json([

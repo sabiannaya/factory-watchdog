@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\GlueSpreaderRequest;
-use App\Http\Resources\GlueSpreaderResource;
 use App\Models\GlueSpreader;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -21,7 +20,12 @@ class GlueSpreaderController extends Controller
         $query = GlueSpreader::query()->orderBy('created_at', 'desc');
 
         if ($q !== '') {
-            $query->where('name', 'like', "%{$q}%");
+            $query->where(function ($sub) use ($q) {
+                $sub->where('name', 'like', "%{$q}%")
+                    ->orWhere('model', 'like', "%{$q}%")
+                    ->orWhere('viscosity', 'like', "%{$q}%")
+                    ->orWhere('notes', 'like', "%{$q}%");
+            });
         }
 
         $paginator = $query->paginate($perPage)->withQueryString();
@@ -31,9 +35,14 @@ class GlueSpreaderController extends Controller
                 'id' => $g->glue_spreader_id,
                 'name' => $g->name,
                 'model' => $g->model,
-                'capacity_ml' => (int) $g->capacity_ml,
-                'speed_mpm' => (int) $g->speed_mpm,
-                'status' => $g->status,
+                'glue_kg' => (float) $g->glue_kg,
+                'hardener_kg' => (float) $g->hardener_kg,
+                'powder_kg' => (float) $g->powder_kg,
+                'colorant_kg' => (float) $g->colorant_kg,
+                'anti_termite_kg' => (float) $g->anti_termite_kg,
+                'viscosity' => $g->viscosity,
+                'washes_per_day' => (int) $g->washes_per_day,
+                'glue_loss_kg' => (float) $g->glue_loss_kg,
                 'notes' => $g->notes,
             ];
         })->all();
@@ -81,9 +90,14 @@ class GlueSpreaderController extends Controller
                 'id' => $glue_spreader->glue_spreader_id,
                 'name' => $glue_spreader->name,
                 'model' => $glue_spreader->model,
-                'capacity_ml' => (int) $glue_spreader->capacity_ml,
-                'speed_mpm' => (int) $glue_spreader->speed_mpm,
-                'status' => $glue_spreader->status,
+                'glue_kg' => (float) $glue_spreader->glue_kg,
+                'hardener_kg' => (float) $glue_spreader->hardener_kg,
+                'powder_kg' => (float) $glue_spreader->powder_kg,
+                'colorant_kg' => (float) $glue_spreader->colorant_kg,
+                'anti_termite_kg' => (float) $glue_spreader->anti_termite_kg,
+                'viscosity' => $glue_spreader->viscosity,
+                'washes_per_day' => (int) $glue_spreader->washes_per_day,
+                'glue_loss_kg' => (float) $glue_spreader->glue_loss_kg,
                 'notes' => $glue_spreader->notes,
             ],
         ]);
@@ -99,9 +113,14 @@ class GlueSpreaderController extends Controller
                 'id' => $glue_spreader->glue_spreader_id,
                 'name' => $glue_spreader->name,
                 'model' => $glue_spreader->model,
-                'capacity_ml' => (int) $glue_spreader->capacity_ml,
-                'speed_mpm' => (int) $glue_spreader->speed_mpm,
-                'status' => $glue_spreader->status,
+                'glue_kg' => (float) $glue_spreader->glue_kg,
+                'hardener_kg' => (float) $glue_spreader->hardener_kg,
+                'powder_kg' => (float) $glue_spreader->powder_kg,
+                'colorant_kg' => (float) $glue_spreader->colorant_kg,
+                'anti_termite_kg' => (float) $glue_spreader->anti_termite_kg,
+                'viscosity' => $glue_spreader->viscosity,
+                'washes_per_day' => (int) $glue_spreader->washes_per_day,
+                'glue_loss_kg' => (float) $glue_spreader->glue_loss_kg,
                 'notes' => $glue_spreader->notes,
             ],
         ]);

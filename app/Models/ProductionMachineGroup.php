@@ -17,7 +17,6 @@ class ProductionMachineGroup extends Model
     public $timestamps = true;
 
     protected $fillable = [
-        'name',
         'production_id',
         'machine_group_id',
         'machine_count',
@@ -50,17 +49,6 @@ class ProductionMachineGroup extends Model
     public function modifier(): BelongsTo
     {
         return $this->belongsTo(User::class, 'modified_by');
-    }
-
-    /* ACCESSORS & MUTATORS */
-    protected function getNameAttribute($value)
-    {
-        return ucfirst(strtolower($value));
-    }
-
-    protected function setNameAttribute($value)
-    {
-        $this->attributes['name'] = strtolower($value);
     }
 
     /* RELATIONSHIPS */

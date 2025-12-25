@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DailyTargetValue;
 use App\Models\Production;
 use App\Models\ProductionMachineGroup;
-use App\Models\DailyTargetValue;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Carbon\Carbon;
 
 class TargetController extends Controller
 {
@@ -39,7 +39,7 @@ class TargetController extends Controller
 
                     return [
                         'production_machine_group_id' => $pmg->production_machine_group_id,
-                        'name' => $pmg->name,
+                        'name' => $pmg->machineGroup->name,
                         'machine_count' => $pmg->machine_count,
                         'fields' => $fields,
                         'default_targets' => $pmg->default_targets ?? [],
@@ -47,7 +47,6 @@ class TargetController extends Controller
                             return [
                                 'field_name' => $val->field_name,
                                 'target_value' => $val->target_value,
-                                'actual_value' => $val->actual_value,
                                 'keterangan' => $val->keterangan,
                             ];
                         })->values()->all(),
@@ -55,7 +54,7 @@ class TargetController extends Controller
                 });
         }
 
-        return Inertia::render('data-management/Target', [
+        return Inertia::render('data-management/Targets/Index', [
             'productions' => $productions,
             'machineGroups' => $machineGroups,
             'selectedProductionId' => $productionId ? (int) $productionId : null,
@@ -80,7 +79,7 @@ class TargetController extends Controller
                     'machine_groups' => $production->productionMachineGroups->map(function ($pmg) {
                         return [
                             'production_machine_group_id' => $pmg->production_machine_group_id,
-                            'name' => $pmg->name,
+                            'name' => $pmg->machineGroup->name,
                             'machine_count' => $pmg->machine_count,
                             'default_targets' => $pmg->default_targets ?? [],
                             'fields' => $pmg->machineGroup->getInputFields(),
@@ -123,7 +122,6 @@ class TargetController extends Controller
             $values[] = [
                 'field_name' => $field,
                 'target_value' => $existing?->target_value ?? $pmg->default_targets[$field] ?? null,
-                'actual_value' => $existing?->actual_value ?? null,
                 'keterangan' => $existing?->keterangan ?? null,
             ];
         }
@@ -131,7 +129,7 @@ class TargetController extends Controller
         return Inertia::render('data-management/Targets/Edit', [
             'productionMachineGroup' => [
                 'production_machine_group_id' => $pmg->production_machine_group_id,
-                'name' => $pmg->name,
+                'name' => $pmg->machineGroup->name,
                 'machine_count' => $pmg->machine_count,
                 'default_targets' => $pmg->default_targets ?? [],
                 'production' => [
@@ -162,7 +160,6 @@ class TargetController extends Controller
             'machine_groups.*.values' => 'required|array',
             'machine_groups.*.values.*.field_name' => 'required|string',
             'machine_groups.*.values.*.target_value' => 'nullable|integer|min:0',
-            'machine_groups.*.values.*.actual_value' => 'nullable|integer|min:0',
             'machine_groups.*.values.*.keterangan' => 'nullable|string|max:500',
         ]);
 
@@ -180,7 +177,6 @@ class TargetController extends Controller
                     ],
                     [
                         'target_value' => $value['target_value'] ?? null,
-                        'actual_value' => $value['actual_value'] ?? null,
                         'keterangan' => $value['keterangan'] ?? null,
                     ]
                 );
@@ -202,7 +198,6 @@ class TargetController extends Controller
             'values' => 'required|array',
             'values.*.field_name' => 'required|string',
             'values.*.target_value' => 'nullable|integer|min:0',
-            'values.*.actual_value' => 'nullable|integer|min:0',
             'values.*.keterangan' => 'nullable|string|max:500',
         ]);
 
@@ -217,7 +212,6 @@ class TargetController extends Controller
                 ],
                 [
                     'target_value' => $value['target_value'] ?? null,
-                    'actual_value' => $value['actual_value'] ?? null,
                     'keterangan' => $value['keterangan'] ?? null,
                 ]
             );
@@ -230,4 +224,3 @@ class TargetController extends Controller
             ->with('success', 'Daily targets updated successfully');
     }
 }
-

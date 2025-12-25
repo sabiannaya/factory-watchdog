@@ -26,6 +26,7 @@ return new class extends Migration
             $table->foreign('production_id')->references('production_id')->on('productions')->onDelete('cascade');
         });
     }
+
     /**
      * Reverse the migrations.
      */

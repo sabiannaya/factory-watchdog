@@ -38,7 +38,6 @@ const props = defineProps<{
     values: Array<{
         field_name: string;
         target_value: number | null;
-        actual_value: number | null;
         keterangan: string | null;
     }>;
     date: string;
@@ -115,17 +114,6 @@ function getFieldLabel(fieldName: string): string {
                                     <p class="text-xs text-muted-foreground dark:text-muted-foreground mt-1">
                                         Default: {{ productionMachineGroup.default_targets[value.field_name] ?? 'None' }}
                                     </p>
-                                </div>
-
-                                <div>
-                                    <label class="block text-sm font-medium mb-1.5">Actual Output</label>
-                                    <input
-                                        v-model.number="value.actual_value"
-                                        type="number"
-                                        placeholder="Enter actual"
-                                        min="0"
-                                        class="input w-full"
-                                    />
                                 </div>
 
                                 <div>

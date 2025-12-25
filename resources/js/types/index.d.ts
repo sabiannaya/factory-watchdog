@@ -84,9 +84,14 @@ export interface GlueSpreaderItem {
     id: number;
     name: string;
     model?: string | null;
-    capacity_ml?: number | null;
-    speed_mpm?: number | null;
-    status?: string | null;
+    glue_kg?: number | null;
+    hardener_kg?: number | null;
+    powder_kg?: number | null;
+    colorant_kg?: number | null;
+    anti_termite_kg?: number | null;
+    viscosity?: string | null;
+    washes_per_day?: number | null;
+    glue_loss_kg?: number | null;
     notes?: string | null;
     created_at?: string | null;
 }
@@ -108,16 +113,26 @@ export interface GlueSpreadersPageProps {
 export interface GlueSpreaderFormData {
     name: string;
     model: string;
-    capacity_ml: number | null;
-    speed_mpm: number | null;
-    status: string;
+    glue_kg: number | null;
+    hardener_kg: number | null;
+    powder_kg: number | null;
+    colorant_kg: number | null;
+    anti_termite_kg: number | null;
+    viscosity: string;
+    washes_per_day: number | null;
+    glue_loss_kg: number | null;
     notes: string;
 }
 
 export interface GlueSpreaderFormErrors {
     name?: string;
     model?: string;
-    capacity_ml?: string;
-    speed_mpm?: string;
-    status?: string;
+    glue_kg?: string;
+    hardener_kg?: string;
+    powder_kg?: string;
+    colorant_kg?: string;
+    anti_termite_kg?: string;
+    viscosity?: string;
+    washes_per_day?: string;
+    glue_loss_kg?: string;
 }

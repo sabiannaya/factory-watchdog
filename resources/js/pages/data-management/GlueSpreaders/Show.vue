@@ -73,18 +73,43 @@ const confirmDelete = () => {
           </div>
 
           <div class="rounded-lg border bg-card p-4">
-            <div class="text-sm text-muted-foreground">Capacity (ml)</div>
-            <div class="mt-2 font-medium">{{ props.glueSpreader.capacity_ml ?? '-' }}</div>
+            <div class="text-sm text-muted-foreground">Glue (Kg)</div>
+            <div class="mt-2 font-medium">{{ props.glueSpreader.glue_kg ?? '-' }}</div>
           </div>
 
           <div class="rounded-lg border bg-card p-4">
-            <div class="text-sm text-muted-foreground">Speed (mpm)</div>
-            <div class="mt-2 font-medium">{{ props.glueSpreader.speed_mpm ?? '-' }}</div>
+            <div class="text-sm text-muted-foreground">Hardener (Kg)</div>
+            <div class="mt-2 font-medium">{{ props.glueSpreader.hardener_kg ?? '-' }}</div>
           </div>
 
           <div class="rounded-lg border bg-card p-4">
-            <div class="text-sm text-muted-foreground">Status</div>
-            <div class="mt-2 font-medium">{{ props.glueSpreader.status ?? '-' }}</div>
+            <div class="text-sm text-muted-foreground">Powder (Kg)</div>
+            <div class="mt-2 font-medium">{{ props.glueSpreader.powder_kg ?? '-' }}</div>
+          </div>
+
+          <div class="rounded-lg border bg-card p-4">
+            <div class="text-sm text-muted-foreground">Colorant (Kg)</div>
+            <div class="mt-2 font-medium">{{ props.glueSpreader.colorant_kg ?? '-' }}</div>
+          </div>
+
+          <div class="rounded-lg border bg-card p-4">
+            <div class="text-sm text-muted-foreground">Anti-Termite (Kg)</div>
+            <div class="mt-2 font-medium">{{ props.glueSpreader.anti_termite_kg ?? '-' }}</div>
+          </div>
+
+          <div class="rounded-lg border bg-card p-4">
+            <div class="text-sm text-muted-foreground">Viscosity</div>
+            <div class="mt-2 font-medium">{{ props.glueSpreader.viscosity ?? '-' }}</div>
+          </div>
+
+          <div class="rounded-lg border bg-card p-4">
+            <div class="text-sm text-muted-foreground">Washes per Day</div>
+            <div class="mt-2 font-medium">{{ props.glueSpreader.washes_per_day ?? '-' }}</div>
+          </div>
+
+          <div class="rounded-lg border bg-card p-4">
+            <div class="text-sm text-muted-foreground">Glue Loss (Kg)</div>
+            <div class="mt-2 font-medium">{{ props.glueSpreader.glue_loss_kg ?? '-' }}</div>
           </div>
         </div>
 

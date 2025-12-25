@@ -3,11 +3,12 @@
 namespace Database\Seeders;
 
 use App\Models\DailyTarget;
+use App\Models\DailyTargetValue;
+use App\Models\HourlyLog;
 use App\Models\MachineGroup;
 use App\Models\Production;
 use App\Models\ProductionMachineGroup;
 use App\Models\ProductionMachineGroupTarget;
-use App\Models\HourlyLog;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 
@@ -29,38 +30,32 @@ class ProductionSeeder extends Seeder
         $pmg[] = ProductionMachineGroup::factory()->create([
             'production_id' => $p1->production_id,
             'machine_group_id' => $mgA->machine_group_id,
-            'name' => $mgA->name,
             'machine_count' => 3,
         ]);
         $pmg[] = ProductionMachineGroup::factory()->create([
             'production_id' => $p1->production_id,
             'machine_group_id' => $mgB->machine_group_id,
-            'name' => $mgB->name,
             'machine_count' => 5,
         ]);
         $pmg[] = ProductionMachineGroup::factory()->create([
             'production_id' => $p1->production_id,
             'machine_group_id' => $mgC->machine_group_id,
-            'name' => $mgC->name,
             'machine_count' => 1,
         ]);
 
         $pmg[] = ProductionMachineGroup::factory()->create([
             'production_id' => $p2->production_id,
             'machine_group_id' => $mgA->machine_group_id,
-            'name' => $mgA->name,
             'machine_count' => 2,
         ]);
         $pmg[] = ProductionMachineGroup::factory()->create([
             'production_id' => $p2->production_id,
             'machine_group_id' => $mgB->machine_group_id,
-            'name' => $mgB->name,
             'machine_count' => 4,
         ]);
         $pmg[] = ProductionMachineGroup::factory()->create([
             'production_id' => $p2->production_id,
             'machine_group_id' => $mgC->machine_group_id,
-            'name' => $mgC->name,
             'machine_count' => 2,
         ]);
 
@@ -85,27 +80,54 @@ class ProductionSeeder extends Seeder
                     'production_machine_group_id' => $entry->production_machine_group_id,
                     'daily_target_id' => $daily->daily_target_id,
                 ]);
+
+                // Create DailyTargetValue entries for common fields so UI can compute hourly targets
+                $dailyTargetTotal = (int) max(0, round($target * 8)); // approximate daily target
+                $dailyTargetNormal = (int) round($dailyTargetTotal * 0.9);
+                $dailyTargetReject = max(0, $dailyTargetTotal - $dailyTargetNormal);
+
+                DailyTargetValue::create([
+                    'production_machine_group_id' => $entry->production_machine_group_id,
+                    'date' => $date,
+                    'field_name' => 'qty_normal',
+                    'target_value' => $dailyTargetNormal,
+                    'actual_value' => null,
+                ]);
+
+                DailyTargetValue::create([
+                    'production_machine_group_id' => $entry->production_machine_group_id,
+                    'date' => $date,
+                    'field_name' => 'qty_reject',
+                    'target_value' => $dailyTargetReject,
+                    'actual_value' => null,
+                ]);
             }
         }
 
-        // Create hourly logs for each date in our date range (00:00 - 23:00 Asia/Jakarta)
+        // Create hourly logs (group-level, not per machine)
         foreach ($dates as $date) {
             foreach ($pmg as $entry) {
-                for ($m = 1; $m <= max(1, $entry->machine_count); $m++) {
-                    for ($h = 0; $h < 24; $h++) {
-                        $recorded = Carbon::parse(sprintf('%s %02d:00:00', $date, $h), 'Asia/Jakarta');
-                        // simple per-hour target (randomized)
-                        $perMachineTarget = (int) max(1, round(($entry->machine_count * rand(5, 30)) / max(1, $entry->machine_count)));
-                        $output = max(0, (int) ($perMachineTarget * (0.5 + rand(0, 60) / 100)));
+                for ($h = 0; $h < 24; $h++) {
+                    $recorded = Carbon::parse(sprintf('%s %02d:00:00', $date, $h), 'Asia/Jakarta');
 
-                        HourlyLog::factory()->create([
-                            'production_machine_group_id' => $entry->production_machine_group_id,
-                            'machine_index' => $m,
-                            'recorded_at' => $recorded,
-                            'output_value' => $output,
-                            'target_value' => $perMachineTarget,
-                        ]);
-                    }
+                    // Generate realistic hourly targets and outputs per machine group
+                    $baseTarget = (int) max(5, round($entry->machine_count * rand(10, 25)));
+
+                    // Generate normal/reject breakdown (90% normal, 10% reject roughly)
+                    $targetQtyNormal = (int) round($baseTarget * 0.9);
+                    $targetQtyReject = max(1, $baseTarget - $targetQtyNormal);
+
+                    $outputQtyNormal = max(0, (int) ($targetQtyNormal * (0.7 + rand(0, 40) / 100)));
+                    $outputQtyReject = max(0, (int) ($targetQtyReject * (0.5 + rand(0, 50) / 100)));
+
+                    HourlyLog::create([
+                        'production_machine_group_id' => $entry->production_machine_group_id,
+                        'recorded_at' => $recorded,
+                        'output_qty_normal' => $outputQtyNormal,
+                        'output_qty_reject' => $outputQtyReject,
+                        'target_qty_normal' => $targetQtyNormal,
+                        'target_qty_reject' => $targetQtyReject,
+                    ]);
                 }
             }
         }

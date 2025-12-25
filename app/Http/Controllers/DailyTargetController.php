@@ -23,7 +23,9 @@ class DailyTargetController extends Controller
         $dateTo = $request->input('date_to');
 
         $allowed = ['date', 'target_value', 'actual_value'];
-        if (! in_array($sort, $allowed, true)) $sort = 'date';
+        if (! in_array($sort, $allowed, true)) {
+            $sort = 'date';
+        }
 
         $query = DailyTarget::query()
             ->select(['daily_target_id', 'date', 'target_value', 'actual_value', 'notes', 'created_at'])
@@ -43,7 +45,7 @@ class DailyTargetController extends Controller
 
         $p = $query->cursorPaginate($perPage, ['*'], 'cursor', $cursor);
 
-        $data = collect($p->items())->map(fn($d) => [
+        $data = collect($p->items())->map(fn ($d) => [
             'daily_target_id' => $d->daily_target_id,
             'date' => $d->date->toDateString(),
             'target_value' => $d->target_value,

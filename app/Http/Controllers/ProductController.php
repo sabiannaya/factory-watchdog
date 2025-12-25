@@ -3,9 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProductRequest;
-use App\Http\Resources\ProductResource;
 use App\Models\Product;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -22,7 +20,12 @@ class ProductController extends Controller
         $query = Product::query()->orderBy('created_at', 'desc');
 
         if ($q !== '') {
-            $query->where('name', 'like', "%{$q}%");
+            $query->where(function ($sub) use ($q) {
+                $sub->where('name', 'like', "%{$q}%")
+                    ->orWhere('glue_type', 'like', "%{$q}%")
+                    ->orWhere('thickness', 'like', "%{$q}%")
+                    ->orWhere('ply', 'like', "%{$q}%");
+            });
         }
 
         $paginator = $query->paginate($perPage)->withQueryString();

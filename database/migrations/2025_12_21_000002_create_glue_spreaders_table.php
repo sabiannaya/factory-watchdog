@@ -15,9 +15,17 @@ return new class extends Migration
             $table->id('glue_spreader_id');
             $table->string('name');
             $table->string('model')->nullable();
-            $table->unsignedInteger('capacity_ml')->nullable();
-            $table->unsignedInteger('speed_mpm')->nullable();
-            $table->string('status')->nullable();
+
+            // Measurements (English column names)
+            $table->decimal('glue_kg', 8, 2)->nullable();
+            $table->decimal('hardener_kg', 8, 2)->nullable();
+            $table->decimal('powder_kg', 8, 2)->nullable();
+            $table->decimal('colorant_kg', 8, 2)->nullable();
+            $table->decimal('anti_termite_kg', 8, 2)->nullable();
+            $table->string('viscosity')->nullable();
+            $table->unsignedInteger('washes_per_day')->nullable();
+            $table->decimal('glue_loss_kg', 8, 2)->nullable();
+
             $table->text('notes')->nullable();
             $table->unsignedBigInteger('created_by')->nullable();
             $table->unsignedBigInteger('modified_by')->nullable();

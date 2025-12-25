@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
+use App\Models\MachineGroup;
 use App\Models\Production;
 use App\Models\ProductionMachineGroup;
-use App\Models\MachineGroup;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -159,4 +159,3 @@ class ProductionDefaultControllerTest extends TestCase
         $this->assertEquals(120, $updated->default_targets['qty_normal']);
     }
 }
-

@@ -19,7 +19,7 @@ class HourlyLogController extends Controller
         $dateFrom = $request->input('date_from');
         $dateTo = $request->input('date_to');
 
-        $allowed = ['recorded_at', 'output_value', 'target_value', 'machine_index'];
+        $allowed = ['recorded_at', 'output_value', 'target_value'];
         if (! in_array($sort, $allowed, true)) {
             $sort = 'recorded_at';
         }
@@ -31,10 +31,9 @@ class HourlyLogController extends Controller
 
         if ($q !== '') {
             $query->where(function ($sub) use ($q) {
-                $sub->where('machine_index', 'like', "%{$q}%")
-                    ->orWhereHas('productionMachineGroup.production', function ($pq) use ($q) {
-                        $pq->where('production_name', 'like', "%{$q}%");
-                    })
+                $sub->orWhereHas('productionMachineGroup.production', function ($pq) use ($q) {
+                    $pq->where('production_name', 'like', "%{$q}%");
+                })
                     ->orWhereHas('productionMachineGroup.machineGroup', function ($mq) use ($q) {
                         $mq->where('name', 'like', "%{$q}%");
                     });
@@ -61,7 +60,7 @@ class HourlyLogController extends Controller
                 'hourly_log_id' => $log->hourly_log_id,
                 'production_name' => $log->productionMachineGroup->production->production_name ?? '-',
                 'machine_group' => $log->productionMachineGroup->machineGroup->name ?? '-',
-                'machine_index' => $log->machine_index,
+                // machine_index removed
                 'recorded_at' => $log->recorded_at->format('Y-m-d H:i'),
                 'output_value' => $log->output_value,
                 'target_value' => $log->target_value,
@@ -69,7 +68,7 @@ class HourlyLogController extends Controller
             ];
         })->all();
 
-        return Inertia::render('data-management/HourlyLog', [
+        return Inertia::render('logs/Index', [
             'hourlyLogs' => [
                 'data' => $data,
                 'next_cursor' => $paginator->nextCursor()?->encode() ?? null,

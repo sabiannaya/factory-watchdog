@@ -22,11 +22,11 @@ class ProductFactory extends Factory
     public function definition()
     {
         return [
-            'name' => $this->faker->word() . ' ' . $this->faker->randomNumber(3),
-            'thickness' => $this->faker->randomElement(['1mm','2mm','3mm','5mm']),
-            'ply' => (string) $this->faker->randomElement([1,2,3]),
-            'glue_type' => $this->faker->randomElement(['PVA','PU','EVA','None']),
-            'qty' => $this->faker->numberBetween(0,1000),
+            'name' => $this->faker->word().' '.$this->faker->randomNumber(3),
+            'thickness' => $this->faker->randomElement(['1mm', '2mm', '3mm', '5mm']),
+            'ply' => (string) $this->faker->randomElement([1, 2, 3]),
+            'glue_type' => $this->faker->randomElement(['PVA', 'PU', 'EVA', 'None']),
+            'qty' => $this->faker->numberBetween(0, 1000),
             'notes' => $this->faker->optional()->sentence(),
         ];
     }

@@ -14,7 +14,7 @@ class MachineGroupFactory extends Factory
 
     public function definition(): array
     {
-        $bases = ['Assembly','Cutting','Painting','Packaging','Inspection','Welding','Press','Molding','Finishing','Quality'];
+        $bases = ['Assembly', 'Cutting', 'Painting', 'Packaging', 'Inspection', 'Welding', 'Press', 'Molding', 'Finishing', 'Quality'];
         $base = $this->faker->randomElement($bases);
         $suffixType = $this->faker->randomElement(['line', 'zone', 'cell']);
         $suffixNumber = $this->faker->numberBetween(1, 8);

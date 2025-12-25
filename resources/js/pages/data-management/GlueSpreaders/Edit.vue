@@ -27,9 +27,14 @@ const form = ref({
   id: props.glueSpreader.id,
   name: props.glueSpreader.name,
   model: props.glueSpreader.model || '',
-  capacity_ml: props.glueSpreader.capacity_ml ?? null,
-  speed_mpm: props.glueSpreader.speed_mpm ?? null,
-  status: props.glueSpreader.status || '',
+  glue_kg: props.glueSpreader.glue_kg ?? null,
+  hardener_kg: props.glueSpreader.hardener_kg ?? null,
+  powder_kg: props.glueSpreader.powder_kg ?? null,
+  colorant_kg: props.glueSpreader.colorant_kg ?? null,
+  anti_termite_kg: props.glueSpreader.anti_termite_kg ?? null,
+  viscosity: props.glueSpreader.viscosity || '',
+  washes_per_day: props.glueSpreader.washes_per_day ?? null,
+  glue_loss_kg: props.glueSpreader.glue_loss_kg ?? null,
   notes: props.glueSpreader.notes || '',
 });
 const errors = ref<GlueSpreaderFormErrors>({});
@@ -41,8 +46,43 @@ const validate = (): boolean => {
   const newErrors: GlueSpreaderFormErrors = {};
 
   if (!form.value.name?.trim()) newErrors.name = 'Name is required';
-  if (form.value.capacity_ml !== null && form.value.capacity_ml < 0) newErrors.capacity_ml = 'Capacity must be 0 or greater';
-  if (form.value.speed_mpm !== null && form.value.speed_mpm < 0) newErrors.speed_mpm = 'Speed must be 0 or greater';
+  if (!form.value.model?.trim()) newErrors.model = 'Model is required';
+  if (form.value.glue_kg === null || form.value.glue_kg === undefined) {
+    newErrors.glue_kg = 'Glue (Kg) is required';
+  } else if (form.value.glue_kg < 0) {
+    newErrors.glue_kg = 'Glue must be 0 or greater';
+  }
+  if (form.value.hardener_kg === null || form.value.hardener_kg === undefined) {
+    newErrors.hardener_kg = 'Hardener (Kg) is required';
+  } else if (form.value.hardener_kg < 0) {
+    newErrors.hardener_kg = 'Hardener must be 0 or greater';
+  }
+  if (form.value.powder_kg === null || form.value.powder_kg === undefined) {
+    newErrors.powder_kg = 'Powder (Kg) is required';
+  } else if (form.value.powder_kg < 0) {
+    newErrors.powder_kg = 'Powder must be 0 or greater';
+  }
+  if (form.value.colorant_kg === null || form.value.colorant_kg === undefined) {
+    newErrors.colorant_kg = 'Colorant (Kg) is required';
+  } else if (form.value.colorant_kg < 0) {
+    newErrors.colorant_kg = 'Colorant must be 0 or greater';
+  }
+  if (form.value.anti_termite_kg === null || form.value.anti_termite_kg === undefined) {
+    newErrors.anti_termite_kg = 'Anti-termite (Kg) is required';
+  } else if (form.value.anti_termite_kg < 0) {
+    newErrors.anti_termite_kg = 'Anti-termite must be 0 or greater';
+  }
+  if (!form.value.viscosity?.trim()) newErrors.viscosity = 'Viscosity is required';
+  if (form.value.washes_per_day === null || form.value.washes_per_day === undefined) {
+    newErrors.washes_per_day = 'Washes per day is required';
+  } else if (form.value.washes_per_day < 0) {
+    newErrors.washes_per_day = 'Washes must be 0 or greater';
+  }
+  if (form.value.glue_loss_kg === null || form.value.glue_loss_kg === undefined) {
+    newErrors.glue_loss_kg = 'Glue loss (Kg) is required';
+  } else if (form.value.glue_loss_kg < 0) {
+    newErrors.glue_loss_kg = 'Loss must be 0 or greater';
+  }
 
   errors.value = newErrors;
   return Object.keys(newErrors).length === 0;
@@ -81,27 +121,57 @@ const confirmSubmit = () => {
             </label>
 
             <label class="block">
-              <div class="text-sm font-medium">Model</div>
+              <div class="text-sm font-medium">Model <span class="text-red-500">*</span></div>
               <input v-model="form.model" type="text" placeholder="Model identifier" class="input" :class="{ 'border-red-500': errors.model }" />
               <p v-if="errors.model" class="mt-1 text-xs text-red-500">{{ errors.model }}</p>
             </label>
 
             <label class="block">
-              <div class="text-sm font-medium">Capacity (ml)</div>
-              <input v-model.number="form.capacity_ml" type="number" placeholder="e.g., 1000" class="input" :class="{ 'border-red-500': errors.capacity_ml }" />
-              <p v-if="errors.capacity_ml" class="mt-1 text-xs text-red-500">{{ errors.capacity_ml }}</p>
+              <div class="text-sm font-medium">Glue (Kg) <span class="text-red-500">*</span></div>
+              <input v-model.number="form.glue_kg" type="number" step="0.01" placeholder="e.g., 120.5" class="input" :class="{ 'border-red-500': errors.glue_kg }" />
+              <p v-if="errors.glue_kg" class="mt-1 text-xs text-red-500">{{ errors.glue_kg }}</p>
             </label>
 
             <label class="block">
-              <div class="text-sm font-medium">Speed (mpm)</div>
-              <input v-model.number="form.speed_mpm" type="number" placeholder="e.g., 10" class="input" :class="{ 'border-red-500': errors.speed_mpm }" />
-              <p v-if="errors.speed_mpm" class="mt-1 text-xs text-red-500">{{ errors.speed_mpm }}</p>
+              <div class="text-sm font-medium">Hardener (Kg) <span class="text-red-500">*</span></div>
+              <input v-model.number="form.hardener_kg" type="number" step="0.01" placeholder="e.g., 10.25" class="input" :class="{ 'border-red-500': errors.hardener_kg }" />
+              <p v-if="errors.hardener_kg" class="mt-1 text-xs text-red-500">{{ errors.hardener_kg }}</p>
             </label>
 
             <label class="block">
-              <div class="text-sm font-medium">Status</div>
-              <input v-model="form.status" type="text" placeholder="active / maintenance / retired" class="input" :class="{ 'border-red-500': errors.status }" />
-              <p v-if="errors.status" class="mt-1 text-xs text-red-500">{{ errors.status }}</p>
+              <div class="text-sm font-medium">Powder (Kg) <span class="text-red-500">*</span></div>
+              <input v-model.number="form.powder_kg" type="number" step="0.01" placeholder="e.g., 50.0" class="input" :class="{ 'border-red-500': errors.powder_kg }" />
+              <p v-if="errors.powder_kg" class="mt-1 text-xs text-red-500">{{ errors.powder_kg }}</p>
+            </label>
+
+            <label class="block">
+              <div class="text-sm font-medium">Colorant (Kg) <span class="text-red-500">*</span></div>
+              <input v-model.number="form.colorant_kg" type="number" step="0.01" placeholder="e.g., 2.5" class="input" :class="{ 'border-red-500': errors.colorant_kg }" />
+              <p v-if="errors.colorant_kg" class="mt-1 text-xs text-red-500">{{ errors.colorant_kg }}</p>
+            </label>
+
+            <label class="block">
+              <div class="text-sm font-medium">Anti-Termite (Kg) <span class="text-red-500">*</span></div>
+              <input v-model.number="form.anti_termite_kg" type="number" step="0.01" placeholder="e.g., 0.5" class="input" :class="{ 'border-red-500': errors.anti_termite_kg }" />
+              <p v-if="errors.anti_termite_kg" class="mt-1 text-xs text-red-500">{{ errors.anti_termite_kg }}</p>
+            </label>
+
+            <label class="block">
+              <div class="text-sm font-medium">Viscosity <span class="text-red-500">*</span></div>
+              <input v-model="form.viscosity" type="text" placeholder="e.g., medium" class="input" :class="{ 'border-red-500': errors.viscosity }" />
+              <p v-if="errors.viscosity" class="mt-1 text-xs text-red-500">{{ errors.viscosity }}</p>
+            </label>
+
+            <label class="block">
+              <div class="text-sm font-medium">Washes per Day <span class="text-red-500">*</span></div>
+              <input v-model.number="form.washes_per_day" type="number" placeholder="e.g., 3" class="input" :class="{ 'border-red-500': errors.washes_per_day }" />
+              <p v-if="errors.washes_per_day" class="mt-1 text-xs text-red-500">{{ errors.washes_per_day }}</p>
+            </label>
+
+            <label class="block">
+              <div class="text-sm font-medium">Glue Loss (Kg) <span class="text-red-500">*</span></div>
+              <input v-model.number="form.glue_loss_kg" type="number" step="0.01" placeholder="e.g., 1.2" class="input" :class="{ 'border-red-500': errors.glue_loss_kg }" />
+              <p v-if="errors.glue_loss_kg" class="mt-1 text-xs text-red-500">{{ errors.glue_loss_kg }}</p>
             </label>
 
             <label class="block col-span-2">
@@ -129,8 +199,14 @@ const confirmSubmit = () => {
           <div class="space-y-1 text-sm">
             <div><span class="font-medium">Name:</span> {{ form.name }}</div>
             <div><span class="font-medium">Model:</span> {{ form.model || '-' }}</div>
-            <div><span class="font-medium">Capacity (ml):</span> {{ form.capacity_ml ?? '-' }}</div>
-            <div><span class="font-medium">Speed (mpm):</span> {{ form.speed_mpm ?? '-' }}</div>
+            <div><span class="font-medium">Glue (Kg):</span> {{ form.glue_kg ?? '-' }}</div>
+            <div><span class="font-medium">Hardener (Kg):</span> {{ form.hardener_kg ?? '-' }}</div>
+            <div><span class="font-medium">Powder (Kg):</span> {{ form.powder_kg ?? '-' }}</div>
+            <div><span class="font-medium">Colorant (Kg):</span> {{ form.colorant_kg ?? '-' }}</div>
+            <div><span class="font-medium">Anti-Termite (Kg):</span> {{ form.anti_termite_kg ?? '-' }}</div>
+            <div><span class="font-medium">Viscosity:</span> {{ form.viscosity || '-' }}</div>
+            <div><span class="font-medium">Washes per Day:</span> {{ form.washes_per_day ?? '-' }}</div>
+            <div><span class="font-medium">Glue Loss (Kg):</span> {{ form.glue_loss_kg ?? '-' }}</div>
           </div>
         </div>
         <div class="flex justify-end gap-2">

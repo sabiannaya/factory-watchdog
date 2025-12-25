@@ -17,7 +17,6 @@ class ProductionMachineGroupFactory extends Factory
         return [
             'production_id' => null,
             'machine_group_id' => null,
-            'name' => null,
             'machine_count' => $this->faker->numberBetween(1, 5),
         ];
     }

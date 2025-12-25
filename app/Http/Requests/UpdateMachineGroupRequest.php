@@ -33,4 +33,3 @@ class UpdateMachineGroupRequest extends FormRequest
         ];
     }
 }
-

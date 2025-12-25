@@ -12,15 +12,25 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('hourly_logs', function (Blueprint $table) {
-            // Keep output_value for backward compatibility and simple cases
-            // Add flexible input fields
-            $table->integer('qty')->nullable()->after('output_value')->comment('Simple quantity input');
-            $table->integer('qty_normal')->nullable()->after('qty')->comment('Normal quantity (for SJ type)');
-            $table->integer('qty_reject')->nullable()->after('qty_normal')->comment('Reject quantity (for SJ type)');
-            $table->json('grades')->nullable()->after('qty_reject')->comment('Multiple grades (for PD type: faceback, opc, ppc)');
-            $table->string('grade')->nullable()->after('grades')->comment('Single grade (for Film type)');
-            $table->string('ukuran')->nullable()->after('grade')->comment('Size/dimension (for CNC/DS2 type)');
-            $table->text('keterangan')->nullable()->after('ukuran')->comment('Description/notes');
+            // Drop generic output_value and target_value - replace with field-specific columns
+            $table->dropColumn(['output_value', 'target_value']);
+
+            // Output columns for each field type
+            $table->integer('output_qty_normal')->nullable()->comment('Output: normal quantity (SJ type)');
+            $table->integer('output_qty_reject')->nullable()->comment('Output: reject quantity (SJ type)');
+            $table->json('output_grades')->nullable()->comment('Output: grades object (PD type: faceback, opc, ppc)');
+            $table->string('output_grade')->nullable()->comment('Output: grade label (Film type)');
+            $table->string('output_ukuran')->nullable()->comment('Output: size/dimension (CNC/DS2 type)');
+
+            // Target columns for each field type
+            $table->integer('target_qty_normal')->nullable()->comment('Target: normal quantity (SJ type)');
+            $table->integer('target_qty_reject')->nullable()->comment('Target: reject quantity (SJ type)');
+            $table->json('target_grades')->nullable()->comment('Target: grades object (PD type)');
+            $table->string('target_grade')->nullable()->comment('Target: grade label (Film type)');
+            $table->string('target_ukuran')->nullable()->comment('Target: size/dimension (CNC/DS2 type)');
+
+            // Additional fields
+            $table->text('keterangan')->nullable()->comment('Description/notes');
         });
     }
 
@@ -30,16 +40,24 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('hourly_logs', function (Blueprint $table) {
+            // Restore generic columns
+            $table->integer('output_value')->default(0);
+            $table->integer('target_value')->nullable();
+
+            // Drop field-specific columns
             $table->dropColumn([
-                'qty',
-                'qty_normal',
-                'qty_reject',
-                'grades',
-                'grade',
-                'ukuran',
+                'output_qty_normal',
+                'output_qty_reject',
+                'output_grades',
+                'output_grade',
+                'output_ukuran',
+                'target_qty_normal',
+                'target_qty_reject',
+                'target_grades',
+                'target_grade',
+                'target_ukuran',
                 'keterangan',
             ]);
         });
     }
 };
-

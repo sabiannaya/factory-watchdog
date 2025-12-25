@@ -27,7 +27,7 @@ class ProductionDefaultController extends Controller
                     'machine_groups' => $production->productionMachineGroups->map(function ($pmg) {
                         return [
                             'production_machine_group_id' => $pmg->production_machine_group_id,
-                            'name' => $pmg->name,
+                            'name' => $pmg->machineGroup->name,
                             'machine_count' => $pmg->machine_count,
                             'fields' => $pmg->machineGroup->getInputFields(),
                             'default_targets' => $pmg->default_targets ?? [],
@@ -78,4 +78,3 @@ class ProductionDefaultController extends Controller
             ->with('success', 'Production defaults updated successfully');
     }
 }
-

@@ -16,7 +16,7 @@ import {
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid, Clock, BarChart2, Layers, Wrench } from 'lucide-vue-next';
+import { BookOpen, Folder, LayoutGrid, Clock, BarChart2, Layers, Wrench, PlusCircle, ClipboardList } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
 const mainNavItems: NavItem[] = [
@@ -27,18 +27,7 @@ const mainNavItems: NavItem[] = [
     },
 ];
 
-const footerNavItems: NavItem[] = [
-    {
-        title: 'Github Repo',
-        href: 'https://github.com/laravel/vue-starter-kit',
-        icon: Folder,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#vue',
-        icon: BookOpen,
-    },
-];
+const footerNavItems: NavItem[] = [];
 </script>
 
 <template>
@@ -58,38 +47,54 @@ const footerNavItems: NavItem[] = [
         <SidebarContent>
             <NavMain :items="mainNavItems" />
 
+            <!-- Input Section -->
+            <SidebarGroup class="px-2 py-0">
+                <SidebarGroupLabel>Input</SidebarGroupLabel>
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton as-child :tooltip="'Record Hourly Input'">
+                            <Link href="/input">
+                                <PlusCircle />
+                                <span>Hourly Input</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarGroup>
+
+            <!-- Data Management Section -->
             <SidebarGroup class="px-2 py-0">
                 <SidebarGroupLabel>Data Management</SidebarGroupLabel>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton as-child :tooltip="'Production'">
+                        <SidebarMenuButton as-child :tooltip="'Productions'">
                             <Link href="/data-management/production">
                                 <LayoutGrid />
-                                <span>Production</span>
+                                <span>Productions</span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
 
                     <SidebarMenuItem>
-                        <SidebarMenuButton as-child :tooltip="'Machine'">
+                        <SidebarMenuButton as-child :tooltip="'Machines'">
                             <Link href="/data-management/machine">
                                 <Folder />
-                                <span>Machine</span>
+                                <span>Machines</span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
 
                     <SidebarMenuItem>
-                        <SidebarMenuButton as-child :tooltip="'Target'">
-                            <Link href="/data-management/target">
-                                <BookOpen />
-                                <span>Target</span>
+                        <SidebarMenuButton as-child :tooltip="'Daily Targets'">
+                            <Link href="/data-management/targets">
+                                <ClipboardList />
+                                <span>Targets</span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
 
                     <SidebarMenuItem>
-                        <SidebarMenuButton as-child :tooltip="'Products (Setting Produk)'">
+                        <SidebarMenuButton as-child :tooltip="'Products'">
                             <Link href="/data-management/products">
                                 <Folder />
                                 <span>Products</span>
@@ -105,52 +110,25 @@ const footerNavItems: NavItem[] = [
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
-
-
-                    <!-- kept core data management links here; summaries/logs moved to dedicated group -->
                 </SidebarMenu>
             </SidebarGroup>
 
-            <SidebarGroup class="px-2 py-0">
-                <SidebarGroupLabel>Summaries</SidebarGroupLabel>
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton as-child :tooltip="'Group Summary (aggregates)'"><!-- moved -->
-                            <Link href="/data-management/aggregates/machine-groups">
-                                <BarChart2 />
-                                <span>Group Summary</span>
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-
-                    <SidebarMenuItem>
-                        <SidebarMenuButton as-child :tooltip="'Production Summary (aggregates)'"><!-- moved -->
-                            <Link href="/data-management/aggregates/productions">
-                                <Layers />
-                                <span>Production Summary</span>
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-
-                </SidebarMenu>
-            </SidebarGroup>
-
+            <!-- Logs Section -->
             <SidebarGroup class="px-2 py-0">
                 <SidebarGroupLabel>Logs</SidebarGroupLabel>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton as-child :tooltip="'Hourly Logs'">
-                            <Link href="/data-management/hourly-logs">
+                        <SidebarMenuButton as-child :tooltip="'All Hourly Logs'">
+                            <Link href="/logs">
                                 <Clock />
                                 <span>Hourly Logs</span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
 
-
                     <SidebarMenuItem>
-                        <SidebarMenuButton as-child :tooltip="'Group Logs (hourly aggregated)'"><!-- moved -->
-                            <Link href="/data-management/logs/group">
+                        <SidebarMenuButton as-child :tooltip="'Logs by Machine Group'">
+                            <Link href="/logs/group">
                                 <BarChart2 />
                                 <span>Group Logs</span>
                             </Link>
@@ -158,10 +136,34 @@ const footerNavItems: NavItem[] = [
                     </SidebarMenuItem>
 
                     <SidebarMenuItem>
-                        <SidebarMenuButton as-child :tooltip="'Production Logs (hourly aggregated)'"><!-- moved -->
-                            <Link href="/data-management/logs/production">
+                        <SidebarMenuButton as-child :tooltip="'Logs by Production'">
+                            <Link href="/logs/production">
                                 <Layers />
                                 <span>Production Logs</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarGroup>
+
+            <!-- Summary Section -->
+            <SidebarGroup class="px-2 py-0">
+                <SidebarGroupLabel>Summary</SidebarGroupLabel>
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton as-child :tooltip="'Machine Group Summary'">
+                            <Link href="/summary/machine-groups">
+                                <BarChart2 />
+                                <span>Machine Groups</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+
+                    <SidebarMenuItem>
+                        <SidebarMenuButton as-child :tooltip="'Production Summary'">
+                            <Link href="/summary/productions">
+                                <Layers />
+                                <span>Productions</span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

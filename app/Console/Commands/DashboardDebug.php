@@ -3,23 +3,24 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class DashboardDebug extends Command
 {
     protected $signature = 'dashboard:debug';
+
     protected $description = 'Print dashboard debug info: counts, min/max recorded_at, last logs, and group aggregation';
 
     public function handle(): int
     {
-        $this->info('Hourly logs count: ' . DB::table('hourly_logs')->count());
+        $this->info('Hourly logs count: '.DB::table('hourly_logs')->count());
 
         $minmax = DB::table('hourly_logs')->selectRaw('MIN(recorded_at) as min, MAX(recorded_at) as max')->first();
-        $this->info('Recorded_at min: ' . ($minmax->min ?? 'null') . ' max: ' . ($minmax->max ?? 'null'));
+        $this->info('Recorded_at min: '.($minmax->min ?? 'null').' max: '.($minmax->max ?? 'null'));
 
         $this->info('\nLast 10 logs (UTC -> Asia/Jakarta):');
-        $rows = DB::table('hourly_logs')->orderBy('recorded_at','desc')->limit(10)->get();
+        $rows = DB::table('hourly_logs')->orderBy('recorded_at', 'desc')->limit(10)->get();
         foreach ($rows as $r) {
             $jakarta = Carbon::parse($r->recorded_at, 'UTC')->setTimezone('Asia/Jakarta')->format('Y-m-d H:i');
             $this->line("{$r->recorded_at} UTC -> {$jakarta} WIB | output: {$r->output_value} | target: {$r->target_value}");

@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
+use App\Models\DailyTargetValue;
+use App\Models\MachineGroup;
 use App\Models\Production;
 use App\Models\ProductionMachineGroup;
-use App\Models\MachineGroup;
-use App\Models\DailyTargetValue;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -47,7 +47,7 @@ class TargetControllerTest extends TestCase
             'default_targets' => ['qty' => 100, 'qty_normal' => 80],
         ]);
 
-        $response = $this->get('/data-management/targets?production_id=' . $production->production_id);
+        $response = $this->get('/data-management/targets?production_id='.$production->production_id);
 
         $response->assertSuccessful();
         $response->assertInertia(fn ($page) => $page
@@ -123,7 +123,7 @@ class TargetControllerTest extends TestCase
             ]
         );
 
-        $response->assertRedirect("/data-management/targets");
+        $response->assertRedirect('/data-management/targets');
 
         $this->assertDatabaseHas('daily_target_values', [
             'production_machine_group_id' => $pmg->production_machine_group_id,
@@ -196,4 +196,3 @@ class TargetControllerTest extends TestCase
         $this->assertEquals(1, $count);
     }
 }
-

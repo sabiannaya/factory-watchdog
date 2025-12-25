@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Production;
-use App\Models\MachineGroup;
-use App\Models\ProductionMachineGroup;
 use App\Models\DailyTarget;
+use App\Models\MachineGroup;
+use App\Models\Production;
+use App\Models\ProductionMachineGroup;
 use App\Models\ProductionMachineGroupTarget;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -42,7 +42,7 @@ class ProductionController extends Controller
                     ->orWhere('status', 'like', "%{$q}%");
             });
         }
-        
+
         // server-side status filter
         if ($request->filled('status')) {
             $query->where('status', $request->input('status'));
@@ -67,7 +67,7 @@ class ProductionController extends Controller
             'prev_cursor' => $paginator->previousCursor()?->encode() ?? null,
         ];
 
-        return Inertia::render('data-management/Production', [
+        return Inertia::render('data-management/Productions/Index', [
             'productions' => $productions,
             'meta' => [
                 'sort' => $sort,
@@ -97,7 +97,7 @@ class ProductionController extends Controller
             })
             ->all();
 
-        return Inertia::render('data-management/ProductionCreate', [
+        return Inertia::render('data-management/Productions/Create', [
             'machine_groups' => $machineGroups,
         ]);
     }
@@ -189,13 +189,13 @@ class ProductionController extends Controller
                 'machine_group_id' => $pmg->machine_group_id,
                 'machine_count' => $pmg->machine_count,
                 'default_target' => $pmg->default_target ?? null,
-                'pmg_name' => $pmg->name,
+                'pmg_name' => $pmg->machineGroup->name,
                 'group_name' => $pmg->machineGroup?->name ?? null,
                 'group_description' => $pmg->machineGroup?->description ?? null,
             ];
         })->all();
 
-        return Inertia::render('data-management/ProductionShow', [
+        return Inertia::render('data-management/Productions/Show', [
             'production' => [
                 'production_id' => $production->production_id,
                 'production_name' => $production->production_name,
@@ -232,11 +232,11 @@ class ProductionController extends Controller
                 'machine_count' => $pmg->machine_count,
                 'default_target' => $pmg->default_target ?? null,
                 'default_targets' => $pmg->default_targets ?? [],
-                'name' => $pmg->name,
+                'name' => $pmg->machineGroup->name,
             ];
         })->keyBy('machine_group_id')->all();
 
-        return Inertia::render('data-management/ProductionEdit', [
+        return Inertia::render('data-management/Productions/Edit', [
             'production' => [
                 'production_id' => $production->production_id,
                 'production_name' => $production->production_name,
@@ -282,7 +282,7 @@ class ProductionController extends Controller
                 $machineCount = isset($g['machine_count']) ? (int) $g['machine_count'] : 1;
                 $targets = $g['targets'] ?? [];
                 $defaultTargets = $g['default_targets'] ?? [];
-                
+
                 // Get default target (use first target value or null for legacy support)
                 $defaultTarget = null;
                 if (! empty($targets)) {
@@ -324,7 +324,7 @@ class ProductionController extends Controller
             foreach ($groups as $g) {
                 $mgId = isset($g['machine_group_id']) ? (int) $g['machine_group_id'] : null;
                 $targets = $g['targets'] ?? [];
-                
+
                 if (! $mgId || empty($targets)) {
                     continue;
                 }

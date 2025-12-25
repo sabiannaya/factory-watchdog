@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreMachineGroupRequest;
 use App\Http\Requests\UpdateMachineGroupRequest;
 use App\Models\MachineGroup;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class MachineGroupController extends Controller
@@ -22,7 +21,9 @@ class MachineGroupController extends Controller
         $cursor = request()->input('cursor');
 
         $allowed = ['name', 'created_at'];
-        if (! in_array($sort, $allowed, true)) $sort = 'name';
+        if (! in_array($sort, $allowed, true)) {
+            $sort = 'name';
+        }
 
         $query = MachineGroup::query()
             ->select(['machine_group_id', 'name', 'description', 'input_config', 'created_at'])
@@ -31,12 +32,15 @@ class MachineGroupController extends Controller
             ->orderBy('machine_group_id', 'asc');
 
         if ($q !== '') {
-            $query->where('name', 'like', "%{$q}%")->orWhere('description', 'like', "%{$q}%");
+            $query->where(function ($sub) use ($q) {
+                $sub->where('name', 'like', "%{$q}%")
+                    ->orWhere('description', 'like', "%{$q}%");
+            });
         }
 
         $p = $query->cursorPaginate($perPage, ['*'], 'cursor', $cursor);
 
-        $data = collect($p->items())->map(function($mg) {
+        $data = collect($p->items())->map(function ($mg) {
             $total = 0;
             $active = 0;
             foreach ($mg->productionMachineGroups ?? [] as $pmg) {
@@ -59,7 +63,7 @@ class MachineGroupController extends Controller
             ];
         })->all();
 
-        return Inertia::render('data-management/Machine', [
+        return Inertia::render('data-management/Machines/Index', [
             'machineGroups' => [
                 'data' => $data,
                 'next_cursor' => $p->nextCursor()?->encode() ?? null,
@@ -86,7 +90,7 @@ class MachineGroupController extends Controller
 
         $total = $allocations->sum('machine_count');
 
-        return Inertia::render('data-management/MachineShow', [
+        return Inertia::render('data-management/Machines/Show', [
             'machineGroup' => [
                 'machine_group_id' => $machine_group->machine_group_id,
                 'name' => $machine_group->name,
@@ -103,7 +107,7 @@ class MachineGroupController extends Controller
      */
     public function create()
     {
-        return Inertia::render('data-management/MachineCreate');
+        return Inertia::render('data-management/Machines/Create');
     }
 
     /**
@@ -112,7 +116,7 @@ class MachineGroupController extends Controller
     public function store(StoreMachineGroupRequest $request)
     {
         $data = $request->validated();
-        
+
         // Ensure input_config has at least 'fields' if provided
         if (isset($data['input_config']) && empty($data['input_config']['fields'])) {
             $data['input_config'] = null;
@@ -123,14 +127,12 @@ class MachineGroupController extends Controller
         return redirect()->route('data-management.machine.index')->with('success', 'Machine group created successfully.');
     }
 
-    
-
     /**
      * Show the form for editing the specified resource.
      */
     public function edit(MachineGroup $machineGroup)
     {
-        return Inertia::render('data-management/MachineEdit', [
+        return Inertia::render('data-management/Machines/Edit', [
             'machineGroup' => [
                 'machine_group_id' => $machineGroup->machine_group_id,
                 'name' => $machineGroup->name,
@@ -146,7 +148,7 @@ class MachineGroupController extends Controller
     public function update(UpdateMachineGroupRequest $request, MachineGroup $machineGroup)
     {
         $data = $request->validated();
-        
+
         // Ensure input_config has at least 'fields' if provided
         if (isset($data['input_config']) && empty($data['input_config']['fields'])) {
             $data['input_config'] = null;
