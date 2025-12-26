@@ -78,7 +78,7 @@ function submit(): void {
                     />
 
                     <div class="flex items-center gap-3">
-                        <button type="submit" class="btn cursor-pointer" :disabled="form.processing">
+                        <button type="submit" class="btn" :disabled="form.processing">
                             {{ form.processing ? 'Saving...' : 'Save Changes' }}
                         </button>
                         <button

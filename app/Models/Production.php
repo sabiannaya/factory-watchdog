@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Production extends Model
 {
@@ -48,5 +49,11 @@ class Production extends Model
     public function productionMachineGroups()
     {
         return $this->hasMany(ProductionMachineGroup::class, 'production_id', 'production_id');
+    }
+
+    public function assignedUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'user_productions', 'production_id', 'user_id')
+            ->withTimestamps();
     }
 }

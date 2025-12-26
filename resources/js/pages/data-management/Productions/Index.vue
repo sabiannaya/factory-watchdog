@@ -5,7 +5,13 @@ import { type BreadcrumbItem } from '@/types';
 import DataTable, { type DataTableColumn } from '@/components/DataTable.vue';
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
 import IconActionButton from '@/components/ui/IconActionButton.vue';
-import { Eye, Edit2, Trash2 } from 'lucide-vue-next';
+import { Eye, Edit2, Trash2, ChevronDown } from 'lucide-vue-next';
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -46,6 +52,15 @@ const props = defineProps<{
 const dataSource = computed(() => props.productions?.data ?? []);
 const loading = ref(false);
 const status = ref(props.meta?.status ?? '');
+
+const statusLabel = computed(() => {
+    if (!status.value) return 'All';
+    if (status.value === 'active') return 'Active';
+    if (status.value === 'inactive') return 'Inactive';
+    return 'All';
+});
+
+const selectStatus = (s: string) => { status.value = s; onStatusChange(); };
 
 const onServerSearch = (q: string) => {
     const perPage = props.meta?.per_page ?? 10;
@@ -125,16 +140,25 @@ const confirmDelete = (id: number | string) => {
 
             <div class="flex items-center gap-3 mb-2">
                 <label class="text-sm">Status</label>
-                <select
-                    class="appearance-none rounded-md border bg-popover text-popover-foreground px-3 py-2 pr-10 text-sm shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                    v-model="status"
-                    @change="onStatusChange"
-                    :disabled="loading"
-                >
-                    <option value="">All</option>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                </select>
+                <DropdownMenu>
+                    <DropdownMenuTrigger :as-child="true">
+                        <button type="button" class="appearance-none rounded-md border bg-popover text-popover-foreground px-3 py-2 pr-10 text-sm shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 flex items-center gap-2" :disabled="loading">
+                            <span>{{ statusLabel }}</span>
+                            <ChevronDown class="ml-1 size-4" />
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent class="min-w-[8rem]">
+                        <DropdownMenuItem :as-child="true">
+                            <button class="block w-full text-left px-3 py-2 text-sm" @click="selectStatus('')">All</button>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem :as-child="true">
+                            <button class="block w-full text-left px-3 py-2 text-sm" @click="selectStatus('active')">Active</button>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem :as-child="true">
+                            <button class="block w-full text-left px-3 py-2 text-sm" @click="selectStatus('inactive')">Inactive</button>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
 
             <DataTable 

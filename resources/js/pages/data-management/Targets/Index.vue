@@ -1,8 +1,17 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router, Link } from '@inertiajs/vue3';
+import IconActionButton from '@/components/ui/IconActionButton.vue';
+import { Edit2 } from 'lucide-vue-next';
 import { type BreadcrumbItem } from '@/types';
 import { ref, watch, computed } from 'vue';
+import { ChevronDown } from 'lucide-vue-next';
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -35,6 +44,16 @@ const props = defineProps<{
 
 const selectedProduction = ref(props.selectedProductionId);
 const selectedDate = ref(props.selectedDate);
+
+const selectedProductionLabel = computed(() => {
+    if (!selectedProduction.value) return '-- Choose Production --';
+    const found = props.productions.find(p => p.production_id === selectedProduction.value);
+    return found ? found.production_name : '-- Choose Production --';
+});
+
+const selectProduction = (id: number | null) => {
+    selectedProduction.value = id;
+};
 
 watch([selectedProduction, selectedDate], ([prodId, date]) => {
     if (!prodId) return;
@@ -88,15 +107,24 @@ const getDefaultTarget = (machineGroupId: number, fieldName: string) => {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
                     <label class="block text-sm font-medium mb-2">Select Production</label>
-                    <select
-                        v-model.number="selectedProduction"
-                        class="input w-full"
-                    >
-                        <option :value="null">-- Choose Production --</option>
-                        <option v-for="prod in productions" :key="prod.production_id" :value="prod.production_id">
-                            {{ prod.production_name }}
-                        </option>
-                    </select>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger :as-child="true">
+                            <button type="button" class="input w-full flex items-center justify-between">
+                                <span class="truncate">{{ selectedProductionLabel }}</span>
+                                <ChevronDown class="ml-2 size-4" />
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent class="min-w-[12rem]">
+                            <DropdownMenuItem :as-child="true">
+                                <button class="block w-full text-left px-3 py-2 text-sm" @click="selectProduction(null)">-- Choose Production --</button>
+                            </DropdownMenuItem>
+                            <template v-for="prod in productions" :key="prod.production_id">
+                                <DropdownMenuItem :as-child="true">
+                                    <button class="block w-full text-left px-3 py-2 text-sm" @click="selectProduction(prod.production_id)">{{ prod.production_name }}</button>
+                                </DropdownMenuItem>
+                            </template>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-2">Select Date</label>
@@ -121,12 +149,7 @@ const getDefaultTarget = (machineGroupId: number, fieldName: string) => {
                                 {{ mg.machine_count }} machines
                             </p>
                         </div>
-                        <Link
-                            :href="`/data-management/targets/${mg.production_machine_group_id}/edit?date=${selectedDate}`"
-                            class="btn btn-ghost"
-                        >
-                            Edit
-                        </Link>
+                        <IconActionButton :icon="Edit2" label="Edit" color="amber" :onClick="() => router.get(`/data-management/targets/${mg.production_machine_group_id}/edit`, { date: selectedDate })" />
                     </div>
 
                     <div class="space-y-4">

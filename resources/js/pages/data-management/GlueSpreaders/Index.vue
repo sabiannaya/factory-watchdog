@@ -76,7 +76,7 @@ router.on('finish', () => (loading.value = false));
           <h2 class="text-2xl font-semibold">Glue Spreaders</h2>
           <p class="text-sm text-muted-foreground">Manage glue spreader equipment used in production.</p>
         </div>
-        <button class="btn hover:cursor-pointer" @click="goCreate">Add Glue Spreader</button>
+        <button class="btn" @click="goCreate">Add Glue Spreader</button>
       </div>
 
       <div class="mt-4">
@@ -125,9 +125,9 @@ router.on('finish', () => (loading.value = false));
         </div>
 
         <div class="mt-4 flex items-center justify-end gap-2">
-          <button class="btn hover:cursor-pointer" :disabled="!props.glueSpreaders?.links?.prev || loading"
+          <button class="btn" :disabled="!props.glueSpreaders?.links?.prev || loading"
             @click="goPrev">Previous</button>
-          <button class="btn hover:cursor-pointer" :disabled="!props.glueSpreaders?.links?.next || loading"
+          <button class="btn" :disabled="!props.glueSpreaders?.links?.next || loading"
             @click="goNext">Next</button>
         </div>
       </div>

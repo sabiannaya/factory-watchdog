@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, nextTick, watch } from 'vue';
+import { computed, ref } from 'vue';
 
 export interface LineChartPoint {
     date: string;
@@ -62,32 +62,19 @@ const gridLines = computed(() => {
     return arr;
 });
 
-const targetPoints = computed(() => safeData.value.map((d, i) => ({
-    x: xScale(i),
-    y: yScale(Number(d.target ?? 0)),
-})));
-
-const actualPoints = computed(() => safeData.value.map((d, i) => ({
-    x: xScale(i),
-    y: yScale(Number(d.actual ?? 0)),
-})));
-
 const hoveredInfo = computed(() => {
     if (!hoveredPoint.value) {
         return null;
     }
 
     const { index } = hoveredPoint.value;
-    const point = hoveredPoint.value.series === 'target' ? targetPoints.value[index] : actualPoints.value[index];
     const row = safeData.value[index];
 
-    if (!point || !row) {
+    if (!row) {
         return null;
     }
 
     return {
-        x: point.x,
-        y: point.y,
         date: row.date,
         target: row.target,
         actual: row.actual,
@@ -96,55 +83,53 @@ const hoveredInfo = computed(() => {
 });
 
 const containerRef = ref<HTMLElement | null>(null);
-const svgRef = ref<SVGElement | null>(null);
 const tooltipRef = ref<HTMLElement | null>(null);
-const tooltipPx = ref<{ left: number; top: number } | null>(null);
+const tooltipPos = ref<{ left: number; top: number } | null>(null);
 
-watch(hoveredInfo, async (val) => {
-    if (!val) {
-        tooltipPx.value = null;
-        return;
-    }
-
-    await nextTick();
-
-    const container = containerRef.value;
-    const svgEl = svgRef.value;
-    const tip = tooltipRef.value;
-    if (!container || !svgEl || !tip) {
-        tooltipPx.value = null;
-        return;
-    }
-
-    const containerRect = container.getBoundingClientRect();
-    const svgRect = svgEl.getBoundingClientRect();
-
-    const relX = (val.x / chartWidth) * svgRect.width;
-    const relY = (val.y / chartHeight) * svgRect.height;
-
-    let left = (svgRect.left - containerRect.left) + relX;
-    let top = (svgRect.top - containerRect.top) + relY;
-
-    top = top - tip.offsetHeight - 8;
-
-    const margin = 8;
-    const minLeft = svgRect.left - containerRect.left + margin;
-    const maxLeft = (svgRect.left - containerRect.left) + svgRect.width - tip.offsetWidth - margin;
-    left = Math.max(minLeft, Math.min(maxLeft, left));
-
-    const minTop = svgRect.top - containerRect.top + margin;
-    const maxTop = (svgRect.top - containerRect.top) + svgRect.height - tip.offsetHeight - margin;
-    top = Math.max(minTop, Math.min(maxTop, top));
-
-    tooltipPx.value = { left: Math.round(left), top: Math.round(top) };
-}, { immediate: true });
-
-const showTooltip = (series: 'target' | 'actual', index: number) => {
+const showTooltip = (series: 'target' | 'actual', index: number, event: MouseEvent) => {
     hoveredPoint.value = { series, index };
+    
+    const container = containerRef.value;
+    const tooltip = tooltipRef.value;
+    if (!container || !tooltip) return;
+    
+    const containerRect = container.getBoundingClientRect();
+    const target = event.target as SVGCircleElement;
+    const targetRect = target.getBoundingClientRect();
+    
+    const margin = 8;
+    const offset = 16;
+    
+    // Try to position to the right of the point
+    let left = (targetRect.right - containerRect.left) + offset;
+    let top = (targetRect.top - containerRect.top) + (targetRect.height / 2) - (tooltip.offsetHeight / 2);
+    
+    // If no room on the right, position to the left
+    if (left + tooltip.offsetWidth + margin > containerRect.width) {
+        left = (targetRect.left - containerRect.left) - tooltip.offsetWidth - offset;
+    }
+    
+    // If still no room, center above/below
+    if (left < margin) {
+        left = (targetRect.left - containerRect.left) + (targetRect.width / 2) - (tooltip.offsetWidth / 2);
+        top = (targetRect.top - containerRect.top) - tooltip.offsetHeight - offset;
+        
+        // If no room above, show below
+        if (top < margin) {
+            top = (targetRect.bottom - containerRect.top) + offset;
+        }
+    }
+    
+    // Final clamping
+    left = Math.max(margin, Math.min(containerRect.width - tooltip.offsetWidth - margin, left));
+    top = Math.max(margin, Math.min(containerRect.height - tooltip.offsetHeight - margin, top));
+    
+    tooltipPos.value = { left: Math.round(left), top: Math.round(top) };
 };
 
 const hideTooltip = () => {
     hoveredPoint.value = null;
+    tooltipPos.value = null;
 };
 </script>
 
@@ -155,7 +140,7 @@ const hideTooltip = () => {
             No data available
         </div>
         <div v-else class="relative w-full" ref="containerRef">
-            <svg ref="svgRef" :viewBox="`0 0 ${chartWidth} ${chartHeight}`" width="100%" :height="chartHeight">
+            <svg :viewBox="`0 0 ${chartWidth} ${chartHeight}`" width="100%" :height="chartHeight">
                 <line 
                     v-for="(g, idx) in gridLines" 
                     :key="`grid-${idx}`"
@@ -199,7 +184,8 @@ const hideTooltip = () => {
                     :cy="yScale(Number(d.target ?? 0))" 
                     r="4" 
                     fill="#3b82f6"
-                    @mouseenter="showTooltip('target', i)"
+                    class="cursor-pointer"
+                    @mouseenter="(e) => showTooltip('target', i, e)"
                     @mouseleave="hideTooltip"
                 />
 
@@ -210,7 +196,8 @@ const hideTooltip = () => {
                     :cy="yScale(Number(d.actual ?? 0))" 
                     r="4" 
                     fill="#10b981"
-                    @mouseenter="showTooltip('actual', i)"
+                    class="cursor-pointer"
+                    @mouseenter="(e) => showTooltip('actual', i, e)"
                     @mouseleave="hideTooltip"
                 />
 
@@ -228,14 +215,39 @@ const hideTooltip = () => {
 
             <div
                 ref="tooltipRef"
-                class="absolute rounded-md border border-border bg-card text-card-foreground px-3 py-2 shadow-lg text-xs pointer-events-none transition-opacity duration-200 z-50"
-                :class="{ 'opacity-0': !tooltipPx, 'opacity-100': tooltipPx }"
-                :style="{ left: tooltipPx ? `${tooltipPx.left}px` : '-9999px', top: tooltipPx ? `${tooltipPx.top}px` : '-9999px' }"
-                :aria-hidden="!tooltipPx"
+                class="absolute rounded-lg border border-border bg-white dark:bg-zinc-900 text-foreground px-4 py-3 shadow-xl pointer-events-none transition-opacity duration-150 z-50 min-w-[180px]"
+                :class="{ 'opacity-0': !tooltipPos, 'opacity-100': tooltipPos }"
+                :style="{ left: tooltipPos ? `${tooltipPos.left}px` : '-9999px', top: tooltipPos ? `${tooltipPos.top}px` : '-9999px' }"
+                :aria-hidden="!tooltipPos"
             >
-                <div class="font-semibold">{{ hoveredInfo ? hoveredInfo.date : '' }}</div>
-                <div>Target: {{ hoveredInfo ? hoveredInfo.target : '' }}</div>
-                <div>Actual: {{ hoveredInfo ? hoveredInfo.actual : '' }}</div>
+                <div v-if="hoveredInfo" class="space-y-2">
+                    <div class="font-semibold text-sm border-b border-border/50 pb-2">{{ hoveredInfo.date }}</div>
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between items-center text-xs">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                                <span class="text-muted-foreground">Target (Normal)</span>
+                            </div>
+                            <span class="font-bold">{{ hoveredInfo.target.toLocaleString() }}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                                <span class="text-muted-foreground">Actual (Normal)</span>
+                            </div>
+                            <span class="font-bold">{{ hoveredInfo.actual.toLocaleString() }}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs pt-1 border-t border-border/50">
+                            <span class="text-muted-foreground">Variance</span>
+                            <span 
+                                class="font-bold"
+                                :class="hoveredInfo.actual >= hoveredInfo.target ? 'text-emerald-600' : 'text-red-600'"
+                            >
+                                {{ hoveredInfo.actual >= hoveredInfo.target ? '+' : '' }}{{ (hoveredInfo.actual - hoveredInfo.target).toLocaleString() }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 

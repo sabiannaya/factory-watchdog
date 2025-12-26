@@ -32,22 +32,7 @@ class ProductionSeeder extends Seeder
             'machine_group_id' => $mgA->machine_group_id,
             'machine_count' => 3,
         ]);
-        $pmg[] = ProductionMachineGroup::factory()->create([
-            'production_id' => $p1->production_id,
-            'machine_group_id' => $mgB->machine_group_id,
-            'machine_count' => 5,
-        ]);
-        $pmg[] = ProductionMachineGroup::factory()->create([
-            'production_id' => $p1->production_id,
-            'machine_group_id' => $mgC->machine_group_id,
-            'machine_count' => 1,
-        ]);
 
-        $pmg[] = ProductionMachineGroup::factory()->create([
-            'production_id' => $p2->production_id,
-            'machine_group_id' => $mgA->machine_group_id,
-            'machine_count' => 2,
-        ]);
         $pmg[] = ProductionMachineGroup::factory()->create([
             'production_id' => $p2->production_id,
             'machine_group_id' => $mgB->machine_group_id,

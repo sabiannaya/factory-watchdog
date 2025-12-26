@@ -8,6 +8,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\ProductionDefaultController;
 use App\Http\Controllers\TargetController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
@@ -22,6 +23,18 @@ Route::get('dashboard', [DashboardController::class, 'index'])->middleware(['aut
 
 // API helpers (used by frontend when Inertia props are missing)
 Route::get('/api/dashboard/aggregates', [DashboardController::class, 'apiAggregates'])->middleware(['auth', 'verified']);
+
+// Admin routes (Super only)
+Route::prefix('admin')->middleware(['auth', 'verified', 'super'])->name('admin.')->group(function () {
+    // User Management
+    Route::get('users', [UserController::class, 'index'])->name('users.index');
+    Route::get('users/create', [UserController::class, 'create'])->name('users.create');
+    Route::post('users', [UserController::class, 'store'])->name('users.store');
+    Route::get('users/{user}', [UserController::class, 'show'])->name('users.show');
+    Route::get('users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+    Route::put('users/{user}', [UserController::class, 'update'])->name('users.update');
+    Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+});
 
 // Data Management routes
 Route::prefix('data-management')->middleware(['auth', 'verified'])->name('data-management.')->group(function () {
@@ -80,6 +93,8 @@ Route::prefix('input')->middleware(['auth', 'verified'])->name('input.')->group(
     Route::get('/create', [HourlyInputController::class, 'create'])->name('create');
     Route::post('/', [HourlyInputController::class, 'store'])->name('store');
     Route::post('/check-duplicate', [HourlyInputController::class, 'checkDuplicate'])->name('check-duplicate');
+    Route::post('/bulk-delete', [HourlyInputController::class, 'bulkDelete'])->name('bulk-delete');
+    Route::get('/export', [HourlyInputController::class, 'export'])->name('export');
     Route::get('/{hourlyLog}', [HourlyInputController::class, 'show'])->name('show');
     Route::get('/{hourlyLog}/edit', [HourlyInputController::class, 'edit'])->name('edit');
     Route::put('/{hourlyLog}', [HourlyInputController::class, 'update'])->name('update');
@@ -90,13 +105,17 @@ Route::prefix('input')->middleware(['auth', 'verified'])->name('input.')->group(
 Route::prefix('logs')->middleware(['auth', 'verified'])->name('logs.')->group(function () {
     Route::get('/', [HourlyLogController::class, 'index'])->name('index');
     Route::get('/group', [App\Http\Controllers\AggregationController::class, 'groupLogs'])->name('group');
+    Route::get('/group/export', [App\Http\Controllers\AggregationController::class, 'exportGroupLogs'])->name('group.export');
     Route::get('/production', [App\Http\Controllers\AggregationController::class, 'productionLogs'])->name('production');
+    Route::get('/production/export', [App\Http\Controllers\AggregationController::class, 'exportProductionLogs'])->name('production.export');
 });
 
 // Summary routes (aggregate views)
 Route::prefix('summary')->middleware(['auth', 'verified'])->name('summary.')->group(function () {
     Route::get('/machine-groups', [App\Http\Controllers\AggregationController::class, 'machineGroups'])->name('machine-groups');
+    Route::get('/machine-groups/export', [App\Http\Controllers\AggregationController::class, 'exportMachineGroups'])->name('machine-groups.export');
     Route::get('/productions', [App\Http\Controllers\AggregationController::class, 'productions'])->name('productions');
+    Route::get('/productions/export', [App\Http\Controllers\AggregationController::class, 'exportProductions'])->name('productions.export');
 });
 
 require __DIR__.'/settings.php';

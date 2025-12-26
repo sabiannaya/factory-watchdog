@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
+import IconActionButton from '@/components/ui/IconActionButton.vue';
+import { Edit2, Trash2 } from 'lucide-vue-next';
 import { type BreadcrumbItem } from '@/types';
 
 const props = defineProps<{
@@ -37,6 +39,16 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const variance = props.hourlyInput.total_output - props.hourlyInput.total_target;
+
+const goEdit = () => {
+    router.get(`/input/${props.hourlyInput.hourly_log_id}/edit`);
+};
+
+const confirmDelete = () => {
+    // simple confirm for consistency with other list pages
+    if (!window.confirm('Are you sure you want to delete this hourly input?')) return;
+    router.visit(`/input/${props.hourlyInput.hourly_log_id}`, { method: 'delete', preserveState: false });
+};
 </script>
 
 <template>
@@ -50,9 +62,8 @@ const variance = props.hourlyInput.total_output - props.hourlyInput.total_target
                     <p class="text-muted-foreground">{{ props.hourlyInput.recorded_at }}</p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button class="btn btn-ghost" @click="router.get(`/input/${props.hourlyInput.hourly_log_id}/edit`)">
-                        Edit
-                    </button>
+                    <IconActionButton :icon="Edit2" label="Edit" color="amber" :onClick="goEdit" />
+                    <IconActionButton :icon="Trash2" label="Delete" color="red" :onClick="confirmDelete" />
                     <button class="btn" @click="router.get('/input')">Back</button>
                 </div>
             </div>

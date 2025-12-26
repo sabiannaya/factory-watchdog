@@ -3,6 +3,8 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
 import InputConfigDisplay from '@/components/machine-group/InputConfigDisplay.vue';
+import IconActionButton from '@/components/ui/IconActionButton.vue';
+import { Edit2, Trash2 } from 'lucide-vue-next';
 
 const props = defineProps<{ machineGroup: { machine_group_id: number; name: string; description?: string; total_machines?: number; allocations?: any[] } }>();
 
@@ -13,6 +15,11 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const goBack = () => router.get('/data-management/machine');
+const goEdit = () => router.get(`/data-management/machine/${props.machineGroup.machine_group_id}/edit`);
+const confirmDelete = () => {
+    if (!window.confirm('Are you sure you want to delete this machine group?')) return;
+    router.visit(`/data-management/machine/${props.machineGroup.machine_group_id}`, { method: 'delete', preserveState: false });
+};
 </script>
 
 <template>
@@ -27,8 +34,10 @@ const goBack = () => router.get('/data-management/machine');
                         <p class="mt-1 text-sm text-muted-foreground">{{ props.machineGroup.description }}</p>
                         <p class="mt-2 text-sm">Total machines: <strong>{{ props.machineGroup.total_machines ?? 0 }}</strong></p>
                     </div>
-                    <div>
+                    <div class="flex items-center gap-2">
                         <button class="btn" @click="goBack">Back</button>
+                        <IconActionButton :icon="Edit2" label="Edit" color="amber" :onClick="goEdit" />
+                        <IconActionButton :icon="Trash2" label="Delete" color="red" :onClick="confirmDelete" />
                     </div>
                 </div>
 

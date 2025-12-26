@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\DailyTarget;
 use App\Models\HourlyLog;
 use App\Models\MachineGroup;
 use App\Models\Production;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
@@ -15,55 +15,128 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        // Quick stats
-        $totalProductions = Production::count();
-        $activeProductions = Production::where('status', 'active')->count();
-        $totalMachineGroups = MachineGroup::count();
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        $isStaff = $user->isStaff();
+        $accessibleProductionIds = $isStaff ? $user->accessibleProductionIds() : [];
 
-        // Last 7 days trend (anchor in Asia/Jakarta)
-        $sevenDaysAgo = Carbon::now('Asia/Jakarta')->subDays(7)->toDateString();
-        $dailyTrends = DailyTarget::where('date', '>=', $sevenDaysAgo)
-            ->orderBy('date', 'asc')
-            ->get(['date', 'target_value', 'actual_value'])
-            ->map(fn ($d) => [
-                'date' => $d->date->format('m/d'),
-                'target' => (int) $d->target_value,
-                'actual' => (int) $d->actual_value,
-            ])
+        // Quick stats (filtered for staff users)
+        if ($isStaff) {
+            $totalProductions = count($accessibleProductionIds);
+            $activeProductions = Production::where('status', 'active')
+                ->whereIn('production_id', $accessibleProductionIds)
+                ->count();
+            // Machine groups accessible to staff via their productions
+            $totalMachineGroups = DB::table('production_machine_groups')
+                ->whereIn('production_id', $accessibleProductionIds)
+                ->distinct('machine_group_id')
+                ->count('machine_group_id');
+        } else {
+            $totalProductions = Production::count();
+            $activeProductions = Production::where('status', 'active')->count();
+            $totalMachineGroups = MachineGroup::count();
+        }
+
+        // Last 7 days trend (anchor in Asia/Jakarta) — use only qty_normal
+        $dates = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $dates[] = Carbon::now('Asia/Jakarta')->subDays($i)->toDateString();
+        }
+
+        $since7 = Carbon::now('Asia/Jakarta')->subDays(7)->setTimezone('UTC');
+        $dailyRows = DB::table('hourly_logs as hl')
+            ->leftJoin('production_machine_groups as pmg', 'hl.production_machine_group_id', '=', 'pmg.production_machine_group_id')
+            ->where('hl.recorded_at', '>=', $since7)
+            ->selectRaw("DATE(CONVERT_TZ(hl.recorded_at, '+00:00', '+07:00')) as date, COALESCE(SUM(hl.output_qty_normal), 0) as actual, COALESCE(SUM(hl.target_qty_normal), 0) as target")
+            ->groupBy('date')
+            ->get()
+            ->keyBy('date')
             ->toArray();
 
-        // Today's performance
-        $today = now()->startOfDay();
-        $todayTarget = DailyTarget::whereDate('date', $today)->first();
-        $todayActual = $todayTarget?->actual_value ?? 0;
-        $todayTargetValue = $todayTarget?->target_value ?? 0;
+        $dailyTrends = array_map(function ($d) use ($dailyRows) {
+            $row = $dailyRows[$d] ?? null;
+
+            return [
+                'date' => Carbon::createFromFormat('Y-m-d', $d, 'Asia/Jakarta')->format('m/d'),
+                'target' => (int) ($row->target ?? 0),
+                'actual' => (int) ($row->actual ?? 0),
+            ];
+        }, $dates);
+
+        // Today's performance (use qty_normal aggregated)
+        $todayStart = Carbon::now('Asia/Jakarta')->startOfDay()->setTimezone('UTC');
+        $todayRow = DB::table('hourly_logs as hl')
+            ->selectRaw('COALESCE(SUM(hl.output_qty_normal), 0) as actual, COALESCE(SUM(hl.target_qty_normal), 0) as target')
+            ->where('hl.recorded_at', '>=', $todayStart)
+            ->first();
+
+        $todayActual = $todayRow->actual ?? 0;
+        $todayTargetValue = $todayRow->target ?? 0;
         $todayPerformance = $todayTargetValue > 0
             ? round(($todayActual / $todayTargetValue) * 100, 1)
             : 0;
 
-        // Recent hourly logs (last 10)
-        $recentLogs = HourlyLog::with('productionMachineGroup.production', 'productionMachineGroup.machineGroup')
+        // Yesterday's performance (use qty_normal aggregated)
+        $yesterdayStart = Carbon::now('Asia/Jakarta')->startOfDay()->subDay()->setTimezone('UTC');
+        $yesterdayEnd = Carbon::now('Asia/Jakarta')->startOfDay()->setTimezone('UTC');
+        $yesterdayRow = DB::table('hourly_logs as hl')
+            ->selectRaw('COALESCE(SUM(hl.output_qty_normal), 0) as actual, COALESCE(SUM(hl.target_qty_normal), 0) as target')
+            ->where('hl.recorded_at', '>=', $yesterdayStart)
+            ->where('hl.recorded_at', '<', $yesterdayEnd)
+            ->first();
+
+        $yesterdayActual = $yesterdayRow->actual ?? 0;
+        $yesterdayTargetValue = $yesterdayRow->target ?? 0;
+        $yesterdayPerformance = $yesterdayTargetValue > 0
+            ? round(($yesterdayActual / $yesterdayTargetValue) * 100, 1)
+            : 0;
+
+        // Recent hourly logs (last 10) - filtered for staff
+        $recentLogsQuery = HourlyLog::with('productionMachineGroup.production', 'productionMachineGroup.machineGroup')
             ->orderBy('recorded_at', 'desc')
-            ->limit(10)
-            ->get()
+            ->limit(10);
+
+        if ($isStaff) {
+            $recentLogsQuery->whereHas('productionMachineGroup', function ($pmq) use ($accessibleProductionIds) {
+                $pmq->whereIn('production_id', $accessibleProductionIds);
+            });
+        }
+
+        $recentLogs = $recentLogsQuery->get()
             ->map(fn ($log) => [
                 'production' => $log->productionMachineGroup->production->production_name ?? '-',
                 'machine_group' => $log->productionMachineGroup->machineGroup->name ?? '-',
-                'machine_index' => $log->machine_index,
-                'recorded_at' => $log->recorded_at->format('H:i'),
-                'output' => $log->output_value,
-                'target' => $log->target_value,
+                'recorded_at' => $log->recorded_at->format('Y-m-d H:00'),
+                'output_normal' => (int) ($log->output_qty_normal ?? 0),
+                'target_normal' => (int) ($log->target_qty_normal ?? 0),
+                'output_reject' => (int) ($log->output_qty_reject ?? 0),
+                'target_reject' => (int) ($log->target_qty_reject ?? 0),
             ])
             ->toArray();
 
         // Group output distribution for last 24 hours (anchor in Asia/Jakarta -> convert to UTC)
         $since24 = Carbon::now('Asia/Jakarta')->subDay()->setTimezone('UTC');
-        $groupDistribution = DB::table('hourly_logs as hl')
+
+        $groupBase = DB::table('hourly_logs as hl')
             ->leftJoin('production_machine_groups as pmg', 'hl.production_machine_group_id', '=', 'pmg.production_machine_group_id')
             ->leftJoin('machine_groups as mg', 'pmg.machine_group_id', '=', 'mg.machine_group_id')
-            ->where('hl.recorded_at', '>=', $since24)
+            ->where('hl.recorded_at', '>=', $since24);
+
+        if ($isStaff) {
+            $groupBase->whereIn('pmg.production_id', $accessibleProductionIds);
+        }
+
+        $groupDistributionNormal = (clone $groupBase)
             ->groupBy('mg.machine_group_id', 'mg.name')
-            ->selectRaw('mg.name as machine_group_name, COALESCE(SUM(hl.output_value),0) as total_output')
+            ->selectRaw('mg.name as machine_group_name, COALESCE(SUM(hl.output_qty_normal), 0) as total_output')
+            ->orderByDesc('total_output')
+            ->get()
+            ->map(fn ($r) => ['machine_group' => $r->machine_group_name, 'total_output' => (float) $r->total_output])
+            ->toArray();
+
+        $groupDistributionReject = (clone $groupBase)
+            ->groupBy('mg.machine_group_id', 'mg.name')
+            ->selectRaw('mg.name as machine_group_name, COALESCE(SUM(hl.output_qty_reject), 0) as total_output')
             ->orderByDesc('total_output')
             ->get()
             ->map(fn ($r) => ['machine_group' => $r->machine_group_name, 'total_output' => (float) $r->total_output])
@@ -71,18 +144,24 @@ class DashboardController extends Controller
 
         // Production totals for last 7 days (anchor in Asia/Jakarta -> convert to UTC)
         $since7 = Carbon::now('Asia/Jakarta')->subDays(7)->setTimezone('UTC');
-        $productionWeekly = DB::table('hourly_logs as hl')
+        $productionWeeklyQuery = DB::table('hourly_logs as hl')
             ->leftJoin('production_machine_groups as pmg', 'hl.production_machine_group_id', '=', 'pmg.production_machine_group_id')
             ->leftJoin('productions as p', 'pmg.production_id', '=', 'p.production_id')
-            ->where('hl.recorded_at', '>=', $since7)
+            ->where('hl.recorded_at', '>=', $since7);
+
+        if ($isStaff) {
+            $productionWeeklyQuery->whereIn('pmg.production_id', $accessibleProductionIds);
+        }
+
+        $productionWeekly = $productionWeeklyQuery
             ->groupBy('p.production_id', 'p.production_name')
-            ->selectRaw('p.production_name, COALESCE(SUM(hl.output_value),0) as total_output')
+            ->selectRaw('p.production_name, COALESCE(SUM(hl.output_qty_normal) + SUM(hl.output_qty_reject), 0) as total_output')
             ->orderByDesc('total_output')
             ->get()
             ->map(fn ($r) => ['production' => $r->production_name, 'total_output' => (float) $r->total_output])
             ->toArray();
 
-        Log::debug('Dashboard returning aggregates', ['groupDistribution' => count($groupDistribution), 'productionWeekly' => count($productionWeekly)]);
+        Log::debug('Dashboard returning aggregates', ['groupDistributionNormal' => count($groupDistributionNormal), 'groupDistributionReject' => count($groupDistributionReject), 'productionWeekly' => count($productionWeekly)]);
 
         return Inertia::render('Dashboard', [
             'stats' => [
@@ -92,10 +171,14 @@ class DashboardController extends Controller
                 'today_performance' => $todayPerformance,
                 'today_actual' => $todayActual,
                 'today_target' => $todayTargetValue,
+                'yesterday_performance' => $yesterdayPerformance,
+                'yesterday_actual' => $yesterdayActual,
+                'yesterday_target' => $yesterdayTargetValue,
             ],
             'dailyTrends' => $dailyTrends,
             'recentLogs' => $recentLogs,
-            'groupDistribution' => $groupDistribution,
+            'groupDistributionNormal' => $groupDistributionNormal,
+            'groupDistributionReject' => $groupDistributionReject,
             'productionWeekly' => $productionWeekly,
         ]);
     }
@@ -105,33 +188,59 @@ class DashboardController extends Controller
      */
     public function apiAggregates()
     {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        $isStaff = $user->isStaff();
+        $accessibleProductionIds = $isStaff ? $user->accessibleProductionIds() : [];
+
         // reuse the same queries used in index()
         $since24 = Carbon::now('Asia/Jakarta')->subDay()->setTimezone('UTC');
-        $groupDistribution = DB::table('hourly_logs as hl')
+        $groupDistributionQuery = DB::table('hourly_logs as hl')
             ->leftJoin('production_machine_groups as pmg', 'hl.production_machine_group_id', '=', 'pmg.production_machine_group_id')
             ->leftJoin('machine_groups as mg', 'pmg.machine_group_id', '=', 'mg.machine_group_id')
-            ->where('hl.recorded_at', '>=', $since24)
+            ->where('hl.recorded_at', '>=', $since24);
+
+        if ($isStaff) {
+            $groupDistributionQuery->whereIn('pmg.production_id', $accessibleProductionIds);
+        }
+
+        $groupDistributionNormal = (clone $groupDistributionQuery)
             ->groupBy('mg.machine_group_id', 'mg.name')
-            ->selectRaw('mg.name as machine_group_name, COALESCE(SUM(hl.output_value),0) as total_output')
+            ->selectRaw('mg.name as machine_group_name, COALESCE(SUM(hl.output_qty_normal), 0) as total_output')
+            ->orderByDesc('total_output')
+            ->get()
+            ->map(fn ($r) => ['machine_group' => $r->machine_group_name, 'total_output' => (float) $r->total_output])
+            ->toArray();
+
+        $groupDistributionReject = (clone $groupDistributionQuery)
+            ->groupBy('mg.machine_group_id', 'mg.name')
+            ->selectRaw('mg.name as machine_group_name, COALESCE(SUM(hl.output_qty_reject), 0) as total_output')
             ->orderByDesc('total_output')
             ->get()
             ->map(fn ($r) => ['machine_group' => $r->machine_group_name, 'total_output' => (float) $r->total_output])
             ->toArray();
 
         $since7 = Carbon::now('Asia/Jakarta')->subDays(7)->setTimezone('UTC');
-        $productionWeekly = DB::table('hourly_logs as hl')
+        $productionWeeklyQuery = DB::table('hourly_logs as hl')
             ->leftJoin('production_machine_groups as pmg', 'hl.production_machine_group_id', '=', 'pmg.production_machine_group_id')
             ->leftJoin('productions as p', 'pmg.production_id', '=', 'p.production_id')
-            ->where('hl.recorded_at', '>=', $since7)
+            ->where('hl.recorded_at', '>=', $since7);
+
+        if ($isStaff) {
+            $productionWeeklyQuery->whereIn('pmg.production_id', $accessibleProductionIds);
+        }
+
+        $productionWeekly = $productionWeeklyQuery
             ->groupBy('p.production_id', 'p.production_name')
-            ->selectRaw('p.production_name, COALESCE(SUM(hl.output_value),0) as total_output')
+            ->selectRaw('p.production_name, COALESCE(SUM(hl.output_qty_normal) + SUM(hl.output_qty_reject), 0) as total_output')
             ->orderByDesc('total_output')
             ->get()
             ->map(fn ($r) => ['production' => $r->production_name, 'total_output' => (float) $r->total_output])
             ->toArray();
 
         return response()->json([
-            'groupDistribution' => $groupDistribution,
+            'groupDistributionNormal' => $groupDistributionNormal,
+            'groupDistributionReject' => $groupDistributionReject,
             'productionWeekly' => $productionWeekly,
         ]);
     }

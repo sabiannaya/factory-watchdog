@@ -26,13 +26,19 @@ export function useInputConfig(initialConfig?: InputConfig) {
     const gradeTypes = ref<string[]>(initialConfig?.grade_types || []);
     const newGradeType = ref('');
 
-    const hasGrades = computed(() => selectedFields.value.includes('grades'));
+    const hasGrades = computed(() => selectedFields.value.includes('grades') || selectedFields.value.includes('grade'));
 
     function toggleField(field: string): void {
         const index = selectedFields.value.indexOf(field);
         if (index > -1) {
             selectedFields.value.splice(index, 1);
         } else {
+            // Don't allow both 'grade' and 'grades' at the same time
+            if (field === 'grade' && selectedFields.value.includes('grades')) {
+                selectedFields.value.splice(selectedFields.value.indexOf('grades'), 1);
+            } else if (field === 'grades' && selectedFields.value.includes('grade')) {
+                selectedFields.value.splice(selectedFields.value.indexOf('grade'), 1);
+            }
             selectedFields.value.push(field);
         }
     }

@@ -78,7 +78,8 @@ class HourlyLog extends Model
             return;
         }
 
-        $dt = Carbon::parse($value, 'Asia/Jakarta')->setTimezone('UTC');
+        // Store timestamps in the DB as Asia/Jakarta (UTC+7) to match existing data.
+        $dt = Carbon::parse($value, 'Asia/Jakarta')->setTimezone('Asia/Jakarta');
         $this->attributes['recorded_at'] = $dt->toDateTimeString();
     }
 
@@ -91,7 +92,8 @@ class HourlyLog extends Model
             return null;
         }
 
-        return Carbon::parse($value, 'UTC')->setTimezone('Asia/Jakarta');
+        // Parse stored DB value as Asia/Jakarta so the frontend receives UTC+7.
+        return Carbon::parse($value, 'Asia/Jakarta')->setTimezone('Asia/Jakarta');
     }
 
     /**

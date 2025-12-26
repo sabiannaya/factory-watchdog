@@ -19,7 +19,7 @@ class HourlyLogController extends Controller
         $dateFrom = $request->input('date_from');
         $dateTo = $request->input('date_to');
 
-        $allowed = ['recorded_at', 'output_value', 'target_value'];
+        $allowed = ['recorded_at'];
         if (! in_array($sort, $allowed, true)) {
             $sort = 'recorded_at';
         }
@@ -60,11 +60,12 @@ class HourlyLogController extends Controller
                 'hourly_log_id' => $log->hourly_log_id,
                 'production_name' => $log->productionMachineGroup->production->production_name ?? '-',
                 'machine_group' => $log->productionMachineGroup->machineGroup->name ?? '-',
-                // machine_index removed
                 'recorded_at' => $log->recorded_at->format('Y-m-d H:i'),
-                'output_value' => $log->output_value,
-                'target_value' => $log->target_value,
-                'variance' => $log->output_value - $log->target_value,
+                'output_normal' => $log->output_qty_normal,
+                'target_normal' => $log->target_qty_normal,
+                'output_reject' => $log->output_qty_reject,
+                'target_reject' => $log->target_qty_reject,
+                'variance_normal' => (int) (($log->output_qty_normal ?? 0) - ($log->target_qty_normal ?? 0)),
             ];
         })->all();
 

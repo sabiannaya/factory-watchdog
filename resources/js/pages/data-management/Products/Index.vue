@@ -75,7 +75,7 @@ router.on('finish', () => (loading.value = false));
             <h2 class="text-2xl font-semibold">Products (Setting Produk)</h2>
             <p class="text-sm text-muted-foreground">Manage product definitions used by production.</p>
           </div>
-          <button class="btn hover:cursor-pointer" @click="goCreate">Add Product</button>
+          <button class="btn" @click="goCreate">Add Product</button>
         </div>
 
         <div class="mt-4">
@@ -128,8 +128,8 @@ router.on('finish', () => (loading.value = false));
           </div>
 
           <div class="mt-4 flex items-center justify-end gap-2">
-            <button class="btn hover:cursor-pointer" :disabled="!props.products?.links?.prev || loading" @click="goPrev">Previous</button>
-            <button class="btn hover:cursor-pointer" :disabled="!props.products?.links?.next || loading" @click="goNext">Next</button>
+            <button class="btn" :disabled="!props.products?.links?.prev || loading" @click="goPrev">Previous</button>
+            <button class="btn" :disabled="!props.products?.links?.next || loading" @click="goNext">Next</button>
           </div>
       </div>
     </div>

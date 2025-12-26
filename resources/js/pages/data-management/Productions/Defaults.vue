@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router, Link } from '@inertiajs/vue3';
+import IconActionButton from '@/components/ui/IconActionButton.vue';
+import { Edit2 } from 'lucide-vue-next';
 import { type BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -57,12 +59,7 @@ const props = defineProps<{
                                         <h3 class="font-semibold text-lg">{{ mg.name }}</h3>
                                         <p class="text-sm text-gray-600">Machines: {{ mg.machine_count }}</p>
                                     </div>
-                                    <Link
-                                        :href="`/data-management/productions/${mg.production_machine_group_id}/defaults/edit`"
-                                        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
-                                    >
-                                        Edit Defaults
-                                    </Link>
+                                    <IconActionButton :icon="Edit2" label="Edit Defaults" color="amber" :onClick="() => router.get(`/data-management/productions/${mg.production_machine_group_id}/defaults/edit`)" />
                                 </div>
 
                                 <div class="bg-gray-50 rounded p-3">

@@ -23,7 +23,9 @@ class DashboardDebug extends Command
         $rows = DB::table('hourly_logs')->orderBy('recorded_at', 'desc')->limit(10)->get();
         foreach ($rows as $r) {
             $jakarta = Carbon::parse($r->recorded_at, 'UTC')->setTimezone('Asia/Jakarta')->format('Y-m-d H:i');
-            $this->line("{$r->recorded_at} UTC -> {$jakarta} WIB | output: {$r->output_value} | target: {$r->target_value}");
+            $totalOutput = ($r->output_qty_normal ?? 0) + ($r->output_qty_reject ?? 0);
+            $totalTarget = ($r->target_qty_normal ?? 0) + ($r->target_qty_reject ?? 0);
+            $this->line("{$r->recorded_at} UTC -> {$jakarta} WIB | output: {$totalOutput} | target: {$totalTarget}");
         }
 
         $since24 = Carbon::now('Asia/Jakarta')->subDay()->setTimezone('UTC');
@@ -32,7 +34,7 @@ class DashboardDebug extends Command
             ->leftJoin('machine_groups as mg', 'pmg.machine_group_id', '=', 'mg.machine_group_id')
             ->where('hl.recorded_at', '>=', $since24)
             ->groupBy('mg.machine_group_id', 'mg.name')
-            ->selectRaw('mg.name as machine_group_name, COALESCE(SUM(hl.output_value),0) as total_output')
+            ->selectRaw('mg.name as machine_group_name, COALESCE(SUM(hl.output_qty_normal) + SUM(hl.output_qty_reject), 0) as total_output')
             ->orderByDesc('total_output')
             ->get();
 
@@ -47,7 +49,7 @@ class DashboardDebug extends Command
             ->leftJoin('productions as p', 'pmg.production_id', '=', 'p.production_id')
             ->where('hl.recorded_at', '>=', $since7)
             ->groupBy('p.production_id', 'p.production_name')
-            ->selectRaw('p.production_name, COALESCE(SUM(hl.output_value),0) as total_output')
+            ->selectRaw('p.production_name, COALESCE(SUM(hl.output_qty_normal) + SUM(hl.output_qty_reject), 0) as total_output')
             ->orderByDesc('total_output')
             ->get();
 

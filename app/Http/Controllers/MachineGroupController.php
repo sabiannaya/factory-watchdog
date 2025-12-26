@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreMachineGroupRequest;
 use App\Http\Requests\UpdateMachineGroupRequest;
 use App\Models\MachineGroup;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class MachineGroupController extends Controller
@@ -14,6 +15,20 @@ class MachineGroupController extends Controller
      */
     public function index()
     {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        // Staff users can only see machine groups assigned to their productions
+        $isStaff = $user->isStaff();
+        $accessibleMachineGroupIds = [];
+        if ($isStaff) {
+            $accessibleMachineGroupIds = \App\Models\ProductionMachineGroup::query()
+                ->whereIn('production_id', $user->accessibleProductionIds())
+                ->pluck('machine_group_id')
+                ->unique()
+                ->toArray();
+        }
+
         $perPage = (int) request()->input('per_page', 10);
         $q = trim((string) request()->input('q', ''));
         $sort = request()->input('sort', 'name');
@@ -30,6 +45,11 @@ class MachineGroupController extends Controller
             ->with(['productionMachineGroups.production'])
             ->orderBy($sort, $direction)
             ->orderBy('machine_group_id', 'asc');
+
+        // Filter for staff users
+        if ($isStaff) {
+            $query->whereIn('machine_group_id', $accessibleMachineGroupIds);
+        }
 
         if ($q !== '') {
             $query->where(function ($sub) use ($q) {
@@ -80,6 +100,14 @@ class MachineGroupController extends Controller
 
     public function show(MachineGroup $machine_group)
     {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        // Staff users can only view machine groups assigned to their productions
+        if ($user->isStaff() && ! $user->canAccessMachineGroup($machine_group->machine_group_id)) {
+            abort(403, 'You do not have access to this machine group.');
+        }
+
         $allocations = $machine_group->productionMachineGroups()->with('production')->get()->map(function ($pmg) {
             return [
                 'production_id' => $pmg->production_id,
@@ -107,6 +135,14 @@ class MachineGroupController extends Controller
      */
     public function create()
     {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        // Only Super users can create machine groups
+        if (! $user->isSuper()) {
+            abort(403, 'Only Super users can create machine groups.');
+        }
+
         return Inertia::render('data-management/Machines/Create');
     }
 
@@ -115,6 +151,14 @@ class MachineGroupController extends Controller
      */
     public function store(StoreMachineGroupRequest $request)
     {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        // Only Super users can create machine groups
+        if (! $user->isSuper()) {
+            abort(403, 'Only Super users can create machine groups.');
+        }
+
         $data = $request->validated();
 
         // Ensure input_config has at least 'fields' if provided
@@ -132,6 +176,14 @@ class MachineGroupController extends Controller
      */
     public function edit(MachineGroup $machineGroup)
     {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        // Only Super users can edit machine groups
+        if (! $user->isSuper()) {
+            abort(403, 'Only Super users can edit machine groups.');
+        }
+
         return Inertia::render('data-management/Machines/Edit', [
             'machineGroup' => [
                 'machine_group_id' => $machineGroup->machine_group_id,
@@ -147,6 +199,14 @@ class MachineGroupController extends Controller
      */
     public function update(UpdateMachineGroupRequest $request, MachineGroup $machineGroup)
     {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        // Only Super users can update machine groups
+        if (! $user->isSuper()) {
+            abort(403, 'Only Super users can update machine groups.');
+        }
+
         $data = $request->validated();
 
         // Ensure input_config has at least 'fields' if provided
@@ -164,6 +224,14 @@ class MachineGroupController extends Controller
      */
     public function destroy(MachineGroup $machineGroup)
     {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        // Only Super users can delete machine groups
+        if (! $user->canDelete()) {
+            abort(403, 'Only Super users can delete machine groups.');
+        }
+
         $machineGroup->delete();
 
         return redirect()->route('data-management.machine.index')->with('success', 'Machine group deleted.');

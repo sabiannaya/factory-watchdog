@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Role;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -32,6 +33,7 @@ class UserFactory extends Factory
             'two_factor_secret' => Str::random(10),
             'two_factor_recovery_codes' => Str::random(10),
             'two_factor_confirmed_at' => now(),
+            'role_id' => null,
         ];
     }
 
@@ -54,6 +56,26 @@ class UserFactory extends Factory
             'two_factor_secret' => null,
             'two_factor_recovery_codes' => null,
             'two_factor_confirmed_at' => null,
+        ]);
+    }
+
+    /**
+     * Indicate that the user is a Super user.
+     */
+    public function super(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role_id' => Role::where('slug', Role::SUPER)->first()?->role_id,
+        ]);
+    }
+
+    /**
+     * Indicate that the user is a Staff user.
+     */
+    public function staff(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role_id' => Role::where('slug', Role::STAFF)->first()?->role_id,
         ]);
     }
 }

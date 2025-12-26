@@ -3,6 +3,8 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type GlueSpreaderItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import IconActionButton from '@/components/ui/IconActionButton.vue';
+import { Edit2, Trash2 } from 'lucide-vue-next';
 import AlertDialog from '@/components/ui/alert-dialog/AlertDialog.vue';
 import AlertDialogAction from '@/components/ui/alert-dialog/AlertDialogAction.vue';
 import AlertDialogCancel from '@/components/ui/alert-dialog/AlertDialogCancel.vue';
@@ -60,9 +62,9 @@ const confirmDelete = () => {
           </div>
 
           <div class="flex items-center gap-2">
-            <button class="btn hover:cursor-pointer" @click="goBack">Back</button>
-            <button class="btn hover:cursor-pointer" @click="goEdit">Edit</button>
-            <button class="btn text-red-700 hover:cursor-pointer" @click="openDeleteDialog">Delete</button>
+            <button class="btn" @click="goBack">Back</button>
+            <IconActionButton :icon="Edit2" label="Edit" color="amber" :onClick="goEdit" />
+            <IconActionButton :icon="Trash2" label="Delete" color="red" :onClick="openDeleteDialog" />
           </div>
         </div>
 

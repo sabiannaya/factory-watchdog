@@ -2,9 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\GroupLogsExport;
+use App\Exports\MachineGroupsExport;
+use App\Exports\ProductionLogsExport;
+use App\Exports\ProductionsExport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
+use Maatwebsite\Excel\Facades\Excel;
 
 class AggregationController extends Controller
 {
@@ -45,6 +50,8 @@ class AggregationController extends Controller
                 DB::raw('COALESCE(SUM(hl.output_qty_reject), 0) as total_output_qty_reject'),
                 DB::raw('COALESCE(SUM(hl.target_qty_normal), 0) as total_target_qty_normal'),
                 DB::raw('COALESCE(SUM(hl.target_qty_reject), 0) as total_target_qty_reject'),
+                DB::raw('COALESCE(SUM(hl.output_qty_normal), 0) + COALESCE(SUM(hl.output_qty_reject), 0) as total_output'),
+                DB::raw('COALESCE(SUM(hl.target_qty_normal), 0) + COALESCE(SUM(hl.target_qty_reject), 0) as total_target'),
             ])
             ->leftJoin('productions as p', 'pmg.production_id', '=', 'p.production_id')
             ->leftJoin('machine_groups as mg', 'pmg.machine_group_id', '=', 'mg.machine_group_id')
@@ -76,7 +83,7 @@ class AggregationController extends Controller
         if (in_array($sort, ['total_output', 'total_target', 'machine_count'])) {
             $query->orderBy(DB::raw($sort), $direction);
         } elseif ($sort === 'variance') {
-            $query->orderBy(DB::raw('(COALESCE(SUM(hl.output_value), 0) - COALESCE(SUM(hl.target_value), 0))'), $direction);
+            $query->orderBy(DB::raw('((COALESCE(SUM(hl.output_qty_normal), 0) + COALESCE(SUM(hl.output_qty_reject), 0)) - (COALESCE(SUM(hl.target_qty_normal), 0) + COALESCE(SUM(hl.target_qty_reject), 0)))'), $direction);
         } else {
             $query->orderBy($sort, $direction);
         }
@@ -86,6 +93,8 @@ class AggregationController extends Controller
         $data = collect($p->items())->map(function ($r) {
             $totalOutput = (int) $r->total_output_qty_normal + (int) $r->total_output_qty_reject;
             $totalTarget = (int) $r->total_target_qty_normal + (int) $r->total_target_qty_reject;
+            $varianceNormal = (int) $r->total_output_qty_normal - (int) $r->total_target_qty_normal;
+            $varianceReject = (int) $r->total_target_qty_reject - (int) $r->total_output_qty_reject;
 
             return [
                 'production_machine_group_id' => $r->production_machine_group_id,
@@ -100,7 +109,7 @@ class AggregationController extends Controller
                 'total_target_qty_reject' => (int) $r->total_target_qty_reject,
                 'total_output' => $totalOutput,
                 'total_target' => $totalTarget,
-                'variance' => $totalOutput - $totalTarget,
+                'variance' => $varianceNormal + $varianceReject,
             ];
         })->all();
 
@@ -141,6 +150,8 @@ class AggregationController extends Controller
                 DB::raw('COALESCE(SUM(hl.output_qty_reject), 0) as total_output_qty_reject'),
                 DB::raw('COALESCE(SUM(hl.target_qty_normal), 0) as total_target_qty_normal'),
                 DB::raw('COALESCE(SUM(hl.target_qty_reject), 0) as total_target_qty_reject'),
+                DB::raw('COALESCE(SUM(hl.output_qty_normal), 0) + COALESCE(SUM(hl.output_qty_reject), 0) as total_output'),
+                DB::raw('COALESCE(SUM(hl.target_qty_normal), 0) + COALESCE(SUM(hl.target_qty_reject), 0) as total_target'),
                 DB::raw('COUNT(DISTINCT pmg.production_machine_group_id) as group_count'),
             ])
             ->leftJoin('production_machine_groups as pmg', 'p.production_id', '=', 'pmg.production_id')
@@ -167,7 +178,7 @@ class AggregationController extends Controller
         if (in_array($sort, ['total_output', 'total_target', 'group_count'])) {
             $query->orderBy(DB::raw($sort), $direction);
         } elseif ($sort === 'variance') {
-            $query->orderBy(DB::raw('(COALESCE(SUM(hl.output_value), 0) - COALESCE(SUM(hl.target_value), 0))'), $direction);
+            $query->orderBy(DB::raw('((COALESCE(SUM(hl.output_qty_normal), 0) + COALESCE(SUM(hl.output_qty_reject), 0)) - (COALESCE(SUM(hl.target_qty_normal), 0) + COALESCE(SUM(hl.target_qty_reject), 0)))'), $direction);
         } else {
             $query->orderBy($sort, $direction);
         }
@@ -177,6 +188,8 @@ class AggregationController extends Controller
         $data = collect($p->items())->map(function ($r) {
             $totalOutput = (int) $r->total_output_qty_normal + (int) $r->total_output_qty_reject;
             $totalTarget = (int) $r->total_target_qty_normal + (int) $r->total_target_qty_reject;
+            $varianceNormal = (int) $r->total_output_qty_normal - (int) $r->total_target_qty_normal;
+            $varianceReject = (int) $r->total_target_qty_reject - (int) $r->total_output_qty_reject;
 
             return [
                 'production_id' => $r->production_id,
@@ -188,7 +201,7 @@ class AggregationController extends Controller
                 'total_target_qty_reject' => (int) $r->total_target_qty_reject,
                 'total_output' => $totalOutput,
                 'total_target' => $totalTarget,
-                'variance' => $totalOutput - $totalTarget,
+                'variance' => $varianceNormal + $varianceReject,
             ];
         })->all();
 
@@ -233,6 +246,8 @@ class AggregationController extends Controller
                 DB::raw('SUM(hl.output_qty_reject) as total_output_qty_reject'),
                 DB::raw('SUM(hl.target_qty_normal) as total_target_qty_normal'),
                 DB::raw('SUM(hl.target_qty_reject) as total_target_qty_reject'),
+                DB::raw('(SUM(hl.output_qty_normal) + SUM(hl.output_qty_reject)) as total_output'),
+                DB::raw('(SUM(hl.target_qty_normal) + SUM(hl.target_qty_reject)) as total_target'),
             ])
             ->leftJoin('production_machine_groups as pmg', 'hl.production_machine_group_id', '=', 'pmg.production_machine_group_id')
             ->leftJoin('productions as p', 'pmg.production_id', '=', 'p.production_id')
@@ -261,7 +276,7 @@ class AggregationController extends Controller
         if (in_array($sort, ['total_output', 'total_target'])) {
             $query->orderBy(DB::raw($sort), $direction);
         } elseif ($sort === 'variance') {
-            $query->orderBy(DB::raw('(SUM(hl.output_value) - SUM(hl.target_value))'), $direction);
+            $query->orderBy(DB::raw('((SUM(hl.output_qty_normal) + SUM(hl.output_qty_reject)) - (SUM(hl.target_qty_normal) + SUM(hl.target_qty_reject)))'), $direction);
         } else {
             $query->orderBy($sort, $direction);
         }
@@ -271,6 +286,8 @@ class AggregationController extends Controller
         $data = collect($p->items())->map(function ($r) {
             $totalOutput = (int) $r->total_output_qty_normal + (int) $r->total_output_qty_reject;
             $totalTarget = (int) $r->total_target_qty_normal + (int) $r->total_target_qty_reject;
+            $varianceNormal = (int) $r->total_output_qty_normal - (int) $r->total_target_qty_normal;
+            $varianceReject = (int) $r->total_target_qty_reject - (int) $r->total_output_qty_reject;
 
             return [
                 'recorded_hour' => $r->recorded_hour,
@@ -285,7 +302,7 @@ class AggregationController extends Controller
                 'total_target_qty_reject' => (int) $r->total_target_qty_reject,
                 'total_output' => $totalOutput,
                 'total_target' => $totalTarget,
-                'variance' => $totalOutput - $totalTarget,
+                'variance' => $varianceNormal + $varianceReject,
             ];
         })->all();
 
@@ -327,6 +344,8 @@ class AggregationController extends Controller
                 DB::raw('SUM(hl.output_qty_reject) as total_output_qty_reject'),
                 DB::raw('SUM(hl.target_qty_normal) as total_target_qty_normal'),
                 DB::raw('SUM(hl.target_qty_reject) as total_target_qty_reject'),
+                DB::raw('(SUM(hl.output_qty_normal) + SUM(hl.output_qty_reject)) as total_output'),
+                DB::raw('(SUM(hl.target_qty_normal) + SUM(hl.target_qty_reject)) as total_target'),
             ])
             ->leftJoin('production_machine_groups as pmg', 'hl.production_machine_group_id', '=', 'pmg.production_machine_group_id')
             ->leftJoin('productions as p', 'pmg.production_id', '=', 'p.production_id')
@@ -351,7 +370,7 @@ class AggregationController extends Controller
         if (in_array($sort, ['total_output', 'total_target'])) {
             $query->orderBy(DB::raw($sort), $direction);
         } elseif ($sort === 'variance') {
-            $query->orderBy(DB::raw('(SUM(hl.output_value) - SUM(hl.target_value))'), $direction);
+            $query->orderBy(DB::raw('((SUM(hl.output_qty_normal) + SUM(hl.output_qty_reject)) - (SUM(hl.target_qty_normal) + SUM(hl.target_qty_reject)))'), $direction);
         } else {
             $query->orderBy($sort, $direction);
         }
@@ -361,6 +380,8 @@ class AggregationController extends Controller
         $data = collect($p->items())->map(function ($r) {
             $totalOutput = (int) $r->total_output_qty_normal + (int) $r->total_output_qty_reject;
             $totalTarget = (int) $r->total_target_qty_normal + (int) $r->total_target_qty_reject;
+            $varianceNormal = (int) $r->total_output_qty_normal - (int) $r->total_target_qty_normal;
+            $varianceReject = (int) $r->total_target_qty_reject - (int) $r->total_output_qty_reject;
 
             return [
                 'recorded_hour' => $r->recorded_hour,
@@ -372,7 +393,7 @@ class AggregationController extends Controller
                 'total_target_qty_reject' => (int) $r->total_target_qty_reject,
                 'total_output' => $totalOutput,
                 'total_target' => $totalTarget,
-                'variance' => $totalOutput - $totalTarget,
+                'variance' => $varianceNormal + $varianceReject,
             ];
         })->all();
 
@@ -391,5 +412,246 @@ class AggregationController extends Controller
                 'per_page' => $perPage,
             ],
         ]);
+    }
+
+    /**
+     * Export machine groups summary to Excel
+     */
+    public function exportMachineGroups(Request $request)
+    {
+        $q = trim((string) $request->input('q', ''));
+        $dateFrom = $request->input('date_from', now('Asia/Jakarta')->toDateString());
+        $dateTo = $request->input('date_to', now('Asia/Jakarta')->toDateString());
+
+        $sql = '
+            SELECT
+                pmg.production_id,
+                p.production_name,
+                pmg.machine_group_id,
+                mg.name AS machine_group_name,
+                COUNT(DISTINCT pmg.production_machine_group_id) AS machine_count,
+                COALESCE(SUM(hl.output_qty_normal), 0) AS total_output_qty_normal,
+                COALESCE(SUM(hl.output_qty_reject), 0) AS total_output_qty_reject,
+                COALESCE(SUM(hl.target_qty_normal), 0) AS total_target_qty_normal,
+                COALESCE(SUM(hl.target_qty_reject), 0) AS total_target_qty_reject
+            FROM production_machine_groups pmg
+            LEFT JOIN machine_groups mg ON mg.machine_group_id = pmg.machine_group_id
+            LEFT JOIN productions p ON p.production_id = pmg.production_id
+            LEFT JOIN hourly_logs hl
+                ON hl.production_machine_group_id = pmg.production_machine_group_id
+                AND DATE(hl.recorded_at) BETWEEN ? AND ?
+        ';
+
+        $params = [$dateFrom, $dateTo];
+
+        if ($q !== '') {
+            $sql .= ' WHERE (p.production_name LIKE ? OR mg.name LIKE ?)';
+            $likeVal = '%'.$q.'%';
+            $params[] = $likeVal;
+            $params[] = $likeVal;
+        }
+
+        $sql .= ' GROUP BY pmg.production_id, p.production_name, pmg.machine_group_id, mg.name
+                  ORDER BY p.production_name, mg.name';
+
+        $rows = DB::select($sql, $params);
+
+        $data = collect($rows)->map(function ($r) {
+            $totalOutput = (int) $r->total_output_qty_normal + (int) $r->total_output_qty_reject;
+            $totalTarget = (int) $r->total_target_qty_normal + (int) $r->total_target_qty_reject;
+            $varianceNormal = (int) $r->total_output_qty_normal - (int) $r->total_target_qty_normal;
+            $varianceReject = (int) $r->total_target_qty_reject - (int) $r->total_output_qty_reject;
+
+            return [
+                'production_name' => $this->sentenceCase($r->production_name),
+                'machine_group_name' => $this->sentenceCase($r->machine_group_name),
+                'machine_count' => (int) $r->machine_count,
+                'total_output' => $totalOutput,
+                'total_target' => $totalTarget,
+                'variance' => $varianceNormal + $varianceReject,
+            ];
+        });
+
+        $filename = 'machine-groups-'.$dateFrom.'-to-'.$dateTo.'.xlsx';
+
+        return Excel::download(new MachineGroupsExport($data, 'Machine Groups Summary'), $filename);
+    }
+
+    /**
+     * Export productions summary to Excel
+     */
+    public function exportProductions(Request $request)
+    {
+        $q = trim((string) $request->input('q', ''));
+        $dateFrom = $request->input('date_from', now('Asia/Jakarta')->toDateString());
+        $dateTo = $request->input('date_to', now('Asia/Jakarta')->toDateString());
+
+        $sql = '
+            SELECT
+                pmg.production_id,
+                p.production_name,
+                COUNT(DISTINCT pmg.machine_group_id) AS group_count,
+                COALESCE(SUM(hl.output_qty_normal), 0) AS total_output_qty_normal,
+                COALESCE(SUM(hl.output_qty_reject), 0) AS total_output_qty_reject,
+                COALESCE(SUM(hl.target_qty_normal), 0) AS total_target_qty_normal,
+                COALESCE(SUM(hl.target_qty_reject), 0) AS total_target_qty_reject
+            FROM production_machine_groups pmg
+            LEFT JOIN productions p ON p.production_id = pmg.production_id
+            LEFT JOIN hourly_logs hl
+                ON hl.production_machine_group_id = pmg.production_machine_group_id
+                AND DATE(hl.recorded_at) BETWEEN ? AND ?
+        ';
+
+        $params = [$dateFrom, $dateTo];
+
+        if ($q !== '') {
+            $sql .= ' WHERE p.production_name LIKE ?';
+            $params[] = '%'.$q.'%';
+        }
+
+        $sql .= ' GROUP BY pmg.production_id, p.production_name
+                  ORDER BY p.production_name';
+
+        $rows = DB::select($sql, $params);
+
+        $data = collect($rows)->map(function ($r) {
+            $totalOutput = (int) $r->total_output_qty_normal + (int) $r->total_output_qty_reject;
+            $totalTarget = (int) $r->total_target_qty_normal + (int) $r->total_target_qty_reject;
+            $varianceNormal = (int) $r->total_output_qty_normal - (int) $r->total_target_qty_normal;
+            $varianceReject = (int) $r->total_target_qty_reject - (int) $r->total_output_qty_reject;
+
+            return [
+                'production_name' => $this->sentenceCase($r->production_name),
+                'group_count' => (int) $r->group_count,
+                'total_output' => $totalOutput,
+                'total_target' => $totalTarget,
+                'variance' => $varianceNormal + $varianceReject,
+            ];
+        });
+
+        $filename = 'productions-'.$dateFrom.'-to-'.$dateTo.'.xlsx';
+
+        return Excel::download(new ProductionsExport($data, 'Productions Summary'), $filename);
+    }
+
+    /**
+     * Export group logs to Excel
+     */
+    public function exportGroupLogs(Request $request)
+    {
+        $q = trim((string) $request->input('q', ''));
+        $dateFrom = $request->input('date_from', now('Asia/Jakarta')->toDateString());
+        $dateTo = $request->input('date_to', now('Asia/Jakarta')->toDateString());
+
+        $sql = "
+            SELECT
+                DATE_FORMAT(hl.recorded_at, '%Y-%m-%d %H:00:00') AS hour_recorded,
+                pmg.production_id,
+                p.production_name,
+                pmg.machine_group_id,
+                mg.name AS machine_group_name,
+                COALESCE(SUM(hl.output_qty_normal), 0) AS total_output_qty_normal,
+                COALESCE(SUM(hl.output_qty_reject), 0) AS total_output_qty_reject,
+                COALESCE(SUM(hl.target_qty_normal), 0) AS total_target_qty_normal,
+                COALESCE(SUM(hl.target_qty_reject), 0) AS total_target_qty_reject
+            FROM hourly_logs hl
+            INNER JOIN production_machine_groups pmg
+                ON pmg.production_machine_group_id = hl.production_machine_group_id
+            LEFT JOIN productions p ON p.production_id = pmg.production_id
+            LEFT JOIN machine_groups mg ON mg.machine_group_id = pmg.machine_group_id
+            WHERE DATE(hl.recorded_at) BETWEEN ? AND ?
+        ";
+
+        $params = [$dateFrom, $dateTo];
+
+        if ($q !== '') {
+            $sql .= ' AND (p.production_name LIKE ? OR mg.name LIKE ?)';
+            $likeVal = '%'.$q.'%';
+            $params[] = $likeVal;
+            $params[] = $likeVal;
+        }
+
+        $sql .= ' GROUP BY hour_recorded, pmg.production_id, p.production_name,
+                          pmg.machine_group_id, mg.name
+                  ORDER BY hour_recorded DESC';
+
+        $rows = DB::select($sql, $params);
+
+        $data = collect($rows)->map(function ($r) {
+            $totalOutput = (int) $r->total_output_qty_normal + (int) $r->total_output_qty_reject;
+            $totalTarget = (int) $r->total_target_qty_normal + (int) $r->total_target_qty_reject;
+            $varianceNormal = (int) $r->total_output_qty_normal - (int) $r->total_target_qty_normal;
+            $varianceReject = (int) $r->total_target_qty_reject - (int) $r->total_output_qty_reject;
+
+            return [
+                'hour' => \Carbon\Carbon::parse($r->hour_recorded)->format('Y-m-d H:00'),
+                'production_name' => $this->sentenceCase($r->production_name),
+                'machine_group_name' => $this->sentenceCase($r->machine_group_name),
+                'total_output' => $totalOutput,
+                'total_target' => $totalTarget,
+                'variance' => $varianceNormal + $varianceReject,
+            ];
+        });
+
+        $filename = 'group-logs-'.$dateFrom.'-to-'.$dateTo.'.xlsx';
+
+        return Excel::download(new GroupLogsExport($data, 'Group Logs by Hour'), $filename);
+    }
+
+    /**
+     * Export production logs to Excel
+     */
+    public function exportProductionLogs(Request $request)
+    {
+        $q = trim((string) $request->input('q', ''));
+        $dateFrom = $request->input('date_from', now('Asia/Jakarta')->toDateString());
+        $dateTo = $request->input('date_to', now('Asia/Jakarta')->toDateString());
+
+        $sql = "
+            SELECT
+                DATE_FORMAT(hl.recorded_at, '%Y-%m-%d %H:00:00') AS hour_recorded,
+                pmg.production_id,
+                p.production_name,
+                COALESCE(SUM(hl.output_qty_normal), 0) AS total_output_qty_normal,
+                COALESCE(SUM(hl.output_qty_reject), 0) AS total_output_qty_reject,
+                COALESCE(SUM(hl.target_qty_normal), 0) AS total_target_qty_normal,
+                COALESCE(SUM(hl.target_qty_reject), 0) AS total_target_qty_reject
+            FROM hourly_logs hl
+            INNER JOIN production_machine_groups pmg
+                ON pmg.production_machine_group_id = hl.production_machine_group_id
+            LEFT JOIN productions p ON p.production_id = pmg.production_id
+            WHERE DATE(hl.recorded_at) BETWEEN ? AND ?
+        ";
+
+        $params = [$dateFrom, $dateTo];
+
+        if ($q !== '') {
+            $sql .= ' AND p.production_name LIKE ?';
+            $params[] = '%'.$q.'%';
+        }
+
+        $sql .= ' GROUP BY hour_recorded, pmg.production_id, p.production_name
+                  ORDER BY hour_recorded DESC';
+
+        $rows = DB::select($sql, $params);
+
+        $data = collect($rows)->map(function ($r) {
+            $totalOutput = (int) $r->total_output_qty_normal + (int) $r->total_output_qty_reject;
+            $totalTarget = (int) $r->total_target_qty_normal + (int) $r->total_target_qty_reject;
+            $varianceNormal = (int) $r->total_output_qty_normal - (int) $r->total_target_qty_normal;
+            $varianceReject = (int) $r->total_target_qty_reject - (int) $r->total_output_qty_reject;
+
+            return [
+                'hour' => \Carbon\Carbon::parse($r->hour_recorded)->format('Y-m-d H:00'),
+                'production_name' => $this->sentenceCase($r->production_name),
+                'total_output' => $totalOutput,
+                'total_target' => $totalTarget,
+                'variance' => $varianceNormal + $varianceReject,
+            ];
+        });
+
+        $filename = 'production-logs-'.$dateFrom.'-to-'.$dateTo.'.xlsx';
+
+        return Excel::download(new ProductionLogsExport($data, 'Production Logs by Hour'), $filename);
     }
 }

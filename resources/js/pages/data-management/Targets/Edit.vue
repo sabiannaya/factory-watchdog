@@ -134,7 +134,7 @@ function getFieldLabel(fieldName: string): string {
                     <button
                         type="submit"
                         :disabled="form.processing"
-                        class="btn cursor-pointer"
+                        class="btn"
                     >
                         {{ form.processing ? 'Saving...' : 'Save Changes' }}
                     </button>

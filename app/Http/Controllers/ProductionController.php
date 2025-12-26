@@ -36,6 +36,13 @@ class ProductionController extends Controller
             ->orderBy($sort, $direction)
             ->orderBy('production_id', 'asc');
 
+        // Filter by accessible productions for Staff users
+        $user = $request->user();
+        if ($user && ! $user->isSuper()) {
+            $accessibleIds = $user->accessibleProductionIds();
+            $query->whereIn('production_id', $accessibleIds);
+        }
+
         if ($q !== '') {
             $query->where(function ($sub) use ($q) {
                 $sub->where('production_name', 'like', "%{$q}%")
@@ -84,8 +91,14 @@ class ProductionController extends Controller
      */
     public function create()
     {
+        // Only Super users can create productions
+        if (! request()->user()?->isSuper()) {
+            abort(403, 'Only super users can create productions.');
+        }
+
         $machineGroups = MachineGroup::query()
             ->select(['machine_group_id', 'name', 'description', 'input_config'])
+            ->whereDoesntHave('productionMachineGroups') // Only show unassigned machine groups
             ->get()
             ->map(function ($m) {
                 return [
@@ -107,6 +120,11 @@ class ProductionController extends Controller
      */
     public function store(Request $request)
     {
+        // Only Super users can create productions
+        if (! $request->user()?->isSuper()) {
+            abort(403, 'Only super users can create productions.');
+        }
+
         $data = $request->validate([
             'production_name' => ['required', 'string', 'max:255'],
             'status' => ['required', 'in:active,inactive'],
@@ -119,13 +137,24 @@ class ProductionController extends Controller
             'target_date' => ['nullable', 'date'],
         ]);
 
+        // Check that machine groups are not already assigned to another production
+        $groups = $request->input('machine_groups', []);
+        foreach ($groups as $g) {
+            $mgId = (int) $g['machine_group_id'];
+            $existingAssignment = ProductionMachineGroup::where('machine_group_id', $mgId)->first();
+            if ($existingAssignment) {
+                return back()->withErrors([
+                    'machine_groups' => 'Machine group is already assigned to another production. Detach it first.',
+                ]);
+            }
+        }
+
         $production = Production::create([
             'production_name' => $data['production_name'],
             'status' => $data['status'],
         ]);
 
         // Handle attached machine groups
-        $groups = $request->input('machine_groups', []);
         $targetDate = $request->input('target_date');
 
         foreach ($groups as $g) {
@@ -180,6 +209,12 @@ class ProductionController extends Controller
      */
     public function show(Production $production)
     {
+        // Check access
+        $user = request()->user();
+        if (! $user?->canAccessProduction($production->production_id)) {
+            abort(403, 'You do not have access to this production.');
+        }
+
         // Load related counts and attached machine groups so frontend can show summary and defaults
         $production->loadCount('productionMachineGroups');
 
@@ -211,9 +246,24 @@ class ProductionController extends Controller
      */
     public function edit(Production $production)
     {
-        // Load all machine groups and the production's attached groups
+        // Check access
+        $user = request()->user();
+        if (! $user?->canAccessProduction($production->production_id)) {
+            abort(403, 'You do not have access to this production.');
+        }
+
+        // Load all machine groups - for Super users show unassigned ones, for this production show assigned ones
         $machineGroups = MachineGroup::query()
             ->select(['machine_group_id', 'name', 'description', 'input_config'])
+            ->where(function ($q) use ($production) {
+                // Show machine groups that are either:
+                // 1. Not assigned to any production
+                // 2. Already assigned to this production
+                $q->whereDoesntHave('productionMachineGroups')
+                    ->orWhereHas('productionMachineGroups', function ($sub) use ($production) {
+                        $sub->where('production_id', $production->production_id);
+                    });
+            })
             ->get()
             ->map(function ($m) {
                 return [
@@ -377,6 +427,11 @@ class ProductionController extends Controller
      */
     public function destroy(Production $production)
     {
+        // Only Super users can delete
+        if (! request()->user()?->canDelete()) {
+            abort(403, 'Only super users can delete productions.');
+        }
+
         $production->delete();
 
         return redirect()->route('data-management.production')->with('success', 'Production deleted.');

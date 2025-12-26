@@ -2,13 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\HourlyInputExport;
 use App\Models\DailyTargetValue;
 use App\Models\HourlyLog;
 use App\Models\Production;
 use App\Models\ProductionMachineGroup;
 use Carbon\Carbon;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
+use Maatwebsite\Excel\Facades\Excel;
 
 class HourlyInputController extends Controller
 {
@@ -17,24 +22,76 @@ class HourlyInputController extends Controller
      */
     public function index(Request $request)
     {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
         $perPage = (int) $request->input('per_page', 20);
         $q = trim((string) $request->input('q', ''));
         $sort = $request->input('sort', 'recorded_at');
         $direction = strtolower($request->input('direction', 'desc')) === 'desc' ? 'desc' : 'asc';
-        $cursor = $request->input('cursor');
         $productionId = $request->input('production_id');
-        $date = $request->input('date', now('Asia/Jakarta')->toDateString());
 
-        $allowed = ['recorded_at', 'output_value'];
-        if (! in_array($sort, $allowed, true)) {
-            $sort = 'recorded_at';
+        // Normalize incoming date formats. Accept yyyy-mm-dd or dd/mm/yyyy from client.
+        $rawDate = $request->input('date');
+
+        // If the incoming request did not include a date parameter, redirect
+        // to the same route but include the normalized date so the URL reflects
+        // the active filter on initial load.
+        if (! $request->has('date') || empty($rawDate) || $rawDate === 'undefined' || $rawDate === 'null') {
+            $qs = $request->query();
+            $qs['date'] = now('Asia/Jakarta')->toDateString();
+            if ($request->filled('production_id')) {
+                $qs['production_id'] = $request->input('production_id');
+            }
+
+            return redirect()->route('input.index', $qs);
         }
 
+        if ($rawDate) {
+            // If client sent dd/mm/yyyy convert to yyyy-mm-dd
+            if (str_contains($rawDate, '/')) {
+                try {
+                    $parts = explode('/', $rawDate);
+                    if (count($parts) === 3) {
+                        // assume dd/mm/yyyy
+                        $date = Carbon::createFromFormat('d/m/Y', $rawDate, 'Asia/Jakarta')->toDateString();
+                    } else {
+                        $date = Carbon::parse($rawDate, 'Asia/Jakarta')->toDateString();
+                    }
+                } catch (\Exception $e) {
+                    // fallback to parse
+                    $date = Carbon::parse($rawDate, 'Asia/Jakarta')->toDateString();
+                }
+            } else {
+                try {
+                    $date = Carbon::parse($rawDate, 'Asia/Jakarta')->toDateString();
+                } catch (\Exception $e) {
+                    $date = now('Asia/Jakarta')->toDateString();
+                }
+            }
+        } else {
+            $date = now('Asia/Jakarta')->toDateString();
+        }
+
+        // Build date range for the requested date in Asia/Jakarta
+        // Laravel will automatically handle UTC conversion for DB queries
+        $startOfDay = Carbon::createFromFormat('Y-m-d', $date, 'Asia/Jakarta')->startOfDay();
+        $endOfDay = Carbon::createFromFormat('Y-m-d', $date, 'Asia/Jakarta')->endOfDay();
+
+        // Always order by recorded_at descending to keep the listing predictable
         $query = HourlyLog::query()
             ->with('productionMachineGroup.production', 'productionMachineGroup.machineGroup')
-            ->whereDate('recorded_at', $date)
-            ->orderBy($sort, $direction)
-            ->orderBy('hourly_log_id', 'asc');
+            ->whereBetween('recorded_at', [$startOfDay, $endOfDay])
+            ->orderBy('recorded_at', 'desc')
+            ->orderBy('hourly_log_id', 'desc');
+
+        // Staff users can only see inputs for their assigned productions
+        if ($user->isStaff()) {
+            $accessibleProductionIds = $user->accessibleProductionIds();
+            $query->whereHas('productionMachineGroup', function ($pmq) use ($accessibleProductionIds) {
+                $pmq->whereIn('production_id', $accessibleProductionIds);
+            });
+        }
 
         if ($q !== '') {
             $query->where(function ($sub) use ($q) {
@@ -50,12 +107,18 @@ class HourlyInputController extends Controller
         }
 
         if ($productionId) {
+            // Verify staff user has access to this production
+            if ($user->isStaff() && ! $user->canAccessProduction($productionId)) {
+                abort(403, 'You do not have access to this production.');
+            }
+
             $query->whereHas('productionMachineGroup', function ($pmq) use ($productionId) {
                 $pmq->where('production_id', $productionId);
             });
         }
 
-        $paginator = $query->cursorPaginate($perPage, ['*'], 'cursor', $cursor);
+        // Use offset pagination (traditional page-based) to simplify paging behavior.
+        $paginator = $query->paginate($perPage);
 
         $data = collect($paginator->items())->map(function ($log) {
             $pmg = $log->productionMachineGroup;
@@ -65,7 +128,7 @@ class HourlyInputController extends Controller
                 'hourly_log_id' => $log->hourly_log_id,
                 'production_name' => $log->productionMachineGroup->production->production_name ?? '-',
                 'machine_group' => $log->productionMachineGroup->machineGroup->name ?? '-',
-                'recorded_at' => $log->recorded_at->format('Y-m-d H:i'),
+                'recorded_at' => $log->recorded_at->format('Y-m-d H:00'),
                 'hour' => $log->recorded_at->format('H:00'),
                 'output_qty_normal' => $log->output_qty_normal,
                 'output_qty_reject' => $log->output_qty_reject,
@@ -83,15 +146,27 @@ class HourlyInputController extends Controller
             ];
         })->all();
 
-        $productions = Production::where('status', 'active')
-            ->orderBy('production_name')
-            ->get(['production_id', 'production_name']);
+        // Pagination meta (page-based)
+        $pagination = [
+            'current_page' => $paginator->currentPage(),
+            'last_page' => $paginator->lastPage(),
+            'per_page' => $paginator->perPage(),
+            'total' => $paginator->total(),
+            'next_page_url' => $paginator->nextPageUrl(),
+            'prev_page_url' => $paginator->previousPageUrl(),
+        ];
+
+        // Staff sees only their assigned productions, Super sees all active
+        $productionsQuery = Production::where('status', 'active')->orderBy('production_name');
+        if ($user->isStaff()) {
+            $productionsQuery->whereIn('production_id', $user->accessibleProductionIds());
+        }
+        $productions = $productionsQuery->get(['production_id', 'production_name']);
 
         return Inertia::render('input/Index', [
             'hourlyInputs' => [
                 'data' => $data,
-                'next_cursor' => $paginator->nextCursor()?->encode() ?? null,
-                'prev_cursor' => $paginator->previousCursor()?->encode() ?? null,
+                'pagination' => $pagination,
             ],
             'productions' => $productions,
             'meta' => [
@@ -110,14 +185,52 @@ class HourlyInputController extends Controller
      */
     public function create(Request $request)
     {
-        $date = $request->input('date', now('Asia/Jakarta')->toDateString());
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        // Normalize incoming date; guard against client sending the literal string 'undefined' or 'null'
+        $rawDate = $request->input('date');
+        if ($rawDate && $rawDate !== 'undefined' && $rawDate !== 'null' && trim($rawDate) !== '') {
+            if (str_contains($rawDate, '/')) {
+                try {
+                    $parts = explode('/', $rawDate);
+                    if (count($parts) === 3) {
+                        $date = Carbon::createFromFormat('d/m/Y', $rawDate, 'Asia/Jakarta')->toDateString();
+                    } else {
+                        $date = Carbon::parse($rawDate, 'Asia/Jakarta')->toDateString();
+                    }
+                } catch (\Exception $e) {
+                    $date = now('Asia/Jakarta')->toDateString();
+                }
+            } else {
+                try {
+                    $date = Carbon::parse($rawDate, 'Asia/Jakarta')->toDateString();
+                } catch (\Exception $e) {
+                    $date = now('Asia/Jakarta')->toDateString();
+                }
+            }
+        } else {
+            $date = now('Asia/Jakarta')->toDateString();
+        }
+
         $productionId = $request->input('production_id');
+        // Handle potential 'undefined' or 'null' strings for production_id
+        if ($productionId === 'undefined' || $productionId === 'null' || trim((string) $productionId) === '') {
+            $productionId = null;
+        }
+
         $hour = $request->input('hour', now('Asia/Jakarta')->format('H'));
 
-        $productions = Production::where('status', 'active')
+        $productionsQuery = Production::where('status', 'active')
             ->with(['productionMachineGroups.machineGroup'])
-            ->orderBy('production_name')
-            ->get()
+            ->orderBy('production_name');
+
+        // Staff users can only create inputs for their assigned productions
+        if ($user->isStaff()) {
+            $productionsQuery->whereIn('production_id', $user->accessibleProductionIds());
+        }
+
+        $productions = $productionsQuery->get()
             ->map(function ($production) {
                 return [
                     'production_id' => $production->production_id,
@@ -148,6 +261,9 @@ class HourlyInputController extends Controller
      */
     public function store(Request $request)
     {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
         $validated = $request->validate([
             'production_machine_group_id' => 'required|integer|exists:production_machine_groups,production_machine_group_id',
             'date' => 'required|date',
@@ -163,7 +279,12 @@ class HourlyInputController extends Controller
 
         $pmg = ProductionMachineGroup::findOrFail($validated['production_machine_group_id']);
 
-        // Create recorded_at timestamp
+        // Verify staff user has access to this production
+        if ($user->isStaff() && ! $user->canAccessProduction($pmg->production_id)) {
+            abort(403, 'You do not have access to this production.');
+        }
+
+        // Create recorded_at timestamp in Asia/Jakarta (Laravel will store as UTC)
         $recordedAt = Carbon::parse($validated['date'], 'Asia/Jakarta')
             ->setHour((int) $validated['hour'])
             ->setMinute(0)
@@ -184,18 +305,34 @@ class HourlyInputController extends Controller
         $targetQtyNormal = $this->getTargetValue($pmg, $validated['date'], 'qty_normal');
         $targetQtyReject = $this->getTargetValue($pmg, $validated['date'], 'qty_reject');
 
-        HourlyLog::create([
-            'production_machine_group_id' => $validated['production_machine_group_id'],
-            'recorded_at' => $recordedAt,
-            'output_qty_normal' => $validated['output_qty_normal'] ?? null,
-            'output_qty_reject' => $validated['output_qty_reject'] ?? null,
-            'output_grades' => $validated['output_grades'] ?? null,
-            'output_grade' => $validated['output_grade'] ?? null,
-            'output_ukuran' => $validated['output_ukuran'] ?? null,
-            'target_qty_normal' => $targetQtyNormal,
-            'target_qty_reject' => $targetQtyReject,
-            'keterangan' => $validated['keterangan'] ?? null,
-        ]);
+        try {
+            HourlyLog::create([
+                'production_machine_group_id' => $validated['production_machine_group_id'],
+                'recorded_at' => $recordedAt,
+                'output_qty_normal' => $validated['output_qty_normal'] ?? null,
+                'output_qty_reject' => $validated['output_qty_reject'] ?? null,
+                'output_grades' => $validated['output_grades'] ?? null,
+                'output_grade' => $validated['output_grade'] ?? null,
+                'output_ukuran' => $validated['output_ukuran'] ?? null,
+                'target_qty_normal' => $targetQtyNormal,
+                'target_qty_reject' => $targetQtyReject,
+                'keterangan' => $validated['keterangan'] ?? null,
+            ]);
+        } catch (QueryException $e) {
+            // Handle duplicate entry (unique constraint violation)
+            // SQLSTATE[23000] is common for integrity constraint violation, code 1062 for MySQL duplicate
+            $sqlState = $e->getCode();
+            $message = $e->getMessage();
+            if ($sqlState === '23000' || str_contains($message, '1062')) {
+                return back()->withErrors([
+                    'duplicate' => "An entry already exists for this machine group at {$recordedAt->format('Y-m-d H:00')}. Please edit the existing entry instead.",
+                ])->withInput();
+            }
+
+            // Log unexpected DB errors and rethrow
+            Log::error('Failed to create HourlyLog', ['error' => $message, 'exception' => $e]);
+            throw $e;
+        }
 
         return redirect()
             ->route('input.index', ['date' => $validated['date'], 'production_id' => $pmg->production_id])
@@ -207,14 +344,22 @@ class HourlyInputController extends Controller
      */
     public function show(HourlyLog $hourlyLog)
     {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
         $hourlyLog->load('productionMachineGroup.production', 'productionMachineGroup.machineGroup', 'creator', 'modifier');
+
+        // Verify staff user has access to this production
+        if ($user->isStaff() && ! $user->canAccessProduction($hourlyLog->productionMachineGroup->production_id)) {
+            abort(403, 'You do not have access to this production.');
+        }
 
         return Inertia::render('input/Show', [
             'hourlyInput' => [
                 'hourly_log_id' => $hourlyLog->hourly_log_id,
                 'production_name' => $hourlyLog->productionMachineGroup->production->production_name ?? '-',
                 'machine_group' => $hourlyLog->productionMachineGroup->machineGroup->name ?? '-',
-                'recorded_at' => $hourlyLog->recorded_at->format('Y-m-d H:i'),
+                'recorded_at' => $hourlyLog->recorded_at->format('Y-m-d H:00'),
                 'date' => $hourlyLog->recorded_at->toDateString(),
                 'hour' => $hourlyLog->recorded_at->format('H'),
                 'output_qty_normal' => $hourlyLog->output_qty_normal,
@@ -243,7 +388,15 @@ class HourlyInputController extends Controller
      */
     public function edit(HourlyLog $hourlyLog)
     {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
         $hourlyLog->load('productionMachineGroup.production', 'productionMachineGroup.machineGroup');
+
+        // Verify staff user has access to this production
+        if ($user->isStaff() && ! $user->canAccessProduction($hourlyLog->productionMachineGroup->production_id)) {
+            abort(403, 'You do not have access to this production.');
+        }
 
         $inputConfig = $hourlyLog->productionMachineGroup->machineGroup->input_config;
         $fields = $hourlyLog->productionMachineGroup->machineGroup->getInputFields();
@@ -278,6 +431,14 @@ class HourlyInputController extends Controller
      */
     public function update(Request $request, HourlyLog $hourlyLog)
     {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        // Verify staff user has access to this production
+        if ($user->isStaff() && ! $user->canAccessProduction($hourlyLog->productionMachineGroup->production_id)) {
+            abort(403, 'You do not have access to this production.');
+        }
+
         $validated = $request->validate([
             'date' => 'required|date',
             'hour' => 'required|integer|min:0|max:23',
@@ -290,7 +451,7 @@ class HourlyInputController extends Controller
             'keterangan' => 'nullable|string|max:500',
         ]);
 
-        // Update recorded_at timestamp
+        // Update recorded_at timestamp in Asia/Jakarta (Laravel handles UTC conversion)
         $recordedAt = Carbon::parse($validated['date'], 'Asia/Jakarta')
             ->setHour((int) $validated['hour'])
             ->setMinute(0)
@@ -320,13 +481,38 @@ class HourlyInputController extends Controller
     /**
      * Remove the specified hourly input.
      */
-    public function destroy(HourlyLog $hourlyLog)
+    public function destroy(Request $request, HourlyLog $hourlyLog)
     {
-        $date = $hourlyLog->recorded_at->toDateString();
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        // Only Super users can delete
+        if (! $user->canDelete()) {
+            abort(403, 'You do not have permission to delete hourly inputs.');
+        }
+
         $hourlyLog->delete();
 
+        // Preserve all query parameters from the request
+        $params = [];
+        if ($request->has('date')) {
+            $params['date'] = $request->input('date');
+        }
+        if ($request->has('production_id')) {
+            $params['production_id'] = $request->input('production_id');
+        }
+        if ($request->has('q')) {
+            $params['q'] = $request->input('q');
+        }
+        if ($request->has('page')) {
+            $params['page'] = $request->input('page');
+        }
+        if ($request->has('per_page')) {
+            $params['per_page'] = $request->input('per_page');
+        }
+
         return redirect()
-            ->route('input.index', ['date' => $date])
+            ->route('input.index', $params)
             ->with('success', 'Hourly input deleted successfully.');
     }
 
@@ -380,8 +566,138 @@ class HourlyInputController extends Controller
             'exists' => (bool) $existingEntry,
             'entry' => $existingEntry ? [
                 'hourly_log_id' => $existingEntry->hourly_log_id,
-                'recorded_at' => $existingEntry->recorded_at->format('Y-m-d H:i'),
+                'recorded_at' => $existingEntry->recorded_at->format('Y-m-d H:00'),
             ] : null,
         ]);
+    }
+
+    /**
+     * Export hourly inputs to Excel
+     */
+    public function export(Request $request)
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        $q = trim((string) $request->input('q', ''));
+        $productionId = $request->input('production_id');
+        $rawDate = $request->input('date', now('Asia/Jakarta')->toDateString());
+
+        // Normalize incoming date
+        try {
+            if (str_contains($rawDate, '/')) {
+                $date = Carbon::createFromFormat('d/m/Y', $rawDate, 'Asia/Jakarta')->toDateString();
+            } else {
+                $date = Carbon::parse($rawDate, 'Asia/Jakarta')->toDateString();
+            }
+        } catch (\Exception $e) {
+            $date = now('Asia/Jakarta')->toDateString();
+        }
+
+        // Build date range (Laravel handles timezone conversion)
+        $startOfDay = Carbon::createFromFormat('Y-m-d', $date, 'Asia/Jakarta')->startOfDay();
+        $endOfDay = Carbon::createFromFormat('Y-m-d', $date, 'Asia/Jakarta')->endOfDay();
+
+        $query = HourlyLog::query()
+            ->with('productionMachineGroup.production', 'productionMachineGroup.machineGroup')
+            ->whereBetween('recorded_at', [$startOfDay, $endOfDay])
+            ->orderBy('recorded_at', 'desc');
+
+        // Staff users can only export inputs for their assigned productions
+        if ($user->isStaff()) {
+            $accessibleProductionIds = $user->accessibleProductionIds();
+            $query->whereHas('productionMachineGroup', function ($pmq) use ($accessibleProductionIds) {
+                $pmq->whereIn('production_id', $accessibleProductionIds);
+            });
+        }
+
+        if ($q !== '') {
+            $query->where(function ($sub) use ($q) {
+                $sub
+                    ->orWhereHas('productionMachineGroup.production', function ($pq) use ($q) {
+                        $pq->where('production_name', 'like', "%{$q}%");
+                    })
+                    ->orWhereHas('productionMachineGroup.machineGroup', function ($mq) use ($q) {
+                        $mq->where('name', 'like', "%{$q}%");
+                    });
+            });
+        }
+
+        if ($productionId) {
+            // Verify staff user has access to this production
+            if ($user->isStaff() && ! $user->canAccessProduction($productionId)) {
+                abort(403, 'You do not have access to this production.');
+            }
+
+            $query->whereHas('productionMachineGroup', function ($pmq) use ($productionId) {
+                $pmq->where('production_id', $productionId);
+            });
+        }
+
+        $data = collect($query->get())->map(function ($log) {
+            return [
+                'hour' => $log->recorded_at->format('H:00'),
+                'production_name' => $log->productionMachineGroup->production->production_name ?? '-',
+                'machine_group' => $log->productionMachineGroup->machineGroup->name ?? '-',
+                'output_qty_normal' => $log->output_qty_normal,
+                'output_qty_reject' => $log->output_qty_reject,
+                'target_qty_normal' => $log->target_qty_normal,
+                'target_qty_reject' => $log->target_qty_reject,
+                'total_output' => $log->total_output,
+                'total_target' => $log->total_target,
+            ];
+        });
+
+        $filename = 'hourly-input-'.$date.'.xlsx';
+
+        return Excel::download(new HourlyInputExport($data, 'Hourly Input '.$date), $filename);
+    }
+
+    /**
+     * Bulk delete hourly logs.
+     */
+    public function bulkDelete(Request $request)
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['required', 'integer', 'exists:hourly_logs,hourly_log_id'],
+        ]);
+
+        $logs = HourlyLog::whereIn('hourly_log_id', $validated['ids'])->get();
+
+        // Verify user has access to all logs
+        foreach ($logs as $log) {
+            $productionId = $log->productionMachineGroup->production_id;
+            if ($user->isStaff() && ! $user->canAccessProduction($productionId)) {
+                abort(403, 'You do not have access to delete one or more of these records.');
+            }
+        }
+
+        HourlyLog::whereIn('hourly_log_id', $validated['ids'])->delete();
+
+        // Preserve all query parameters from the request
+        $params = [];
+        if ($request->has('date')) {
+            $params['date'] = $request->input('date');
+        }
+        if ($request->has('production_id')) {
+            $params['production_id'] = $request->input('production_id');
+        }
+        if ($request->has('q')) {
+            $params['q'] = $request->input('q');
+        }
+        if ($request->has('page')) {
+            $params['page'] = $request->input('page');
+        }
+        if ($request->has('per_page')) {
+            $params['per_page'] = $request->input('per_page');
+        }
+
+        return redirect()
+            ->route('input.index', $params)
+            ->with('success', count($validated['ids']).' hourly inputs deleted successfully.');
     }
 }

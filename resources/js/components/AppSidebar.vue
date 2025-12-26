@@ -15,9 +15,16 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid, Clock, BarChart2, Layers, Wrench, PlusCircle, ClipboardList } from 'lucide-vue-next';
+import { Link, usePage } from '@inertiajs/vue3';
+import { BookOpen, Folder, LayoutGrid, Clock, BarChart2, Layers, Wrench, PlusCircle, ClipboardList, Users, Shield } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
+import { computed } from 'vue';
+
+const page = usePage();
+
+const isSuper = computed(() => {
+    return (page.props.auth as any)?.user?.is_super === true;
+});
 
 const mainNavItems: NavItem[] = [
     {
@@ -164,6 +171,24 @@ const footerNavItems: NavItem[] = [];
                             <Link href="/summary/productions">
                                 <Layers />
                                 <span>Productions</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarGroup>
+
+            <!-- Admin Section (Super users only) -->
+            <SidebarGroup v-if="isSuper" class="px-2 py-0">
+                <SidebarGroupLabel class="text-purple-600 dark:text-purple-400">
+                    <Shield class="size-3 mr-1" />
+                    Admin
+                </SidebarGroupLabel>
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton as-child :tooltip="'User Management'">
+                            <Link href="/admin/users">
+                                <Users />
+                                <span>Users</span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

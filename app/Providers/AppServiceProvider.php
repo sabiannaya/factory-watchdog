@@ -2,6 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\MachineGroup;
+use App\Models\Production;
+use App\Policies\MachineGroupPolicy;
+use App\Policies\ProductionPolicy;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +24,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Register policies
+        Gate::policy(Production::class, ProductionPolicy::class);
+        Gate::policy(MachineGroup::class, MachineGroupPolicy::class);
     }
 }
