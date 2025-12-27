@@ -4,7 +4,7 @@ import { Head, router } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
 import InputConfigDisplay from '@/components/machine-group/InputConfigDisplay.vue';
 import IconActionButton from '@/components/ui/IconActionButton.vue';
-import { Edit2, Trash2 } from 'lucide-vue-next';
+import { Edit2, Trash2, ArrowLeft } from 'lucide-vue-next';
 
 const props = defineProps<{ machineGroup: { machine_group_id: number; name: string; description?: string; total_machines?: number; allocations?: any[] } }>();
 
@@ -35,7 +35,7 @@ const confirmDelete = () => {
                         <p class="mt-2 text-sm">Total machines: <strong>{{ props.machineGroup.total_machines ?? 0 }}</strong></p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button class="btn" @click="goBack">Back</button>
+                        <IconActionButton :icon="ArrowLeft" label="Back" :onClick="goBack" />
                         <IconActionButton :icon="Edit2" label="Edit" color="amber" :onClick="goEdit" />
                         <IconActionButton :icon="Trash2" label="Delete" color="red" :onClick="confirmDelete" />
                     </div>

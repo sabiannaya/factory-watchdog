@@ -3,7 +3,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
 import { ref, computed, watch } from 'vue';
-import { UserCog, Shield, Users, Eye, EyeOff, ChevronDown } from 'lucide-vue-next';
+import { UserCog, Shield, Users, Eye, EyeOff, ChevronDown, Wrench } from 'lucide-vue-next';
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -24,6 +24,11 @@ interface Production {
     production_name: string;
 }
 
+interface GlueSpreader {
+    glue_spreader_id: number;
+    name: string;
+}
+
 interface UserData {
     id: number;
     name: string;
@@ -31,12 +36,16 @@ interface UserData {
     role_id: number | null;
     role_slug: string | null;
     production_ids: number[];
+    can_access_glue_spreaders: boolean;
+    can_access_warehouse?: boolean;
+    glue_spreader_ids?: number[];
 }
 
 const props = defineProps<{
     user: UserData;
     roles: Role[];
     productions: Production[];
+    glueSpreaders?: GlueSpreader[];
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -52,6 +61,8 @@ const form = useForm({
     password_confirmation: '',
     role_id: props.user.role_id ?? ('' as number | string),
     production_ids: props.user.production_ids ?? [],
+        can_access_glue_spreaders: props.user.can_access_glue_spreaders ?? false,
+        can_access_warehouse: props.user.can_access_warehouse ?? false,
 });
 
 const showPassword = ref(false);
@@ -74,7 +85,7 @@ const selectRole = (id: number | string) => {
 
 const isStaffRole = computed(() => selectedRole.value?.slug === 'staff');
 
-// Clear production assignments when switching to super role
+// Clear production and glue spreader assignments when switching to super role
 watch(() => form.role_id, (newRoleId) => {
     const role = props.roles.find(r => r.role_id === Number(newRoleId));
     if (role?.slug === 'super') {
@@ -100,13 +111,17 @@ const toggleProduction = (productionId: number) => {
 const isProductionSelected = (productionId: number) => {
     return form.production_ids.includes(productionId);
 };
+
+// Glue spreader access is a simple boolean flag now: `can_access_glue_spreaders` on the user
+
+// (glue spreader list removed - access is controlled by a boolean flag)
 </script>
 
 <template>
     <Head :title="`Edit User - ${user.name}`" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="p-4 max-w-2xl mx-auto">
+        <div class="p-4">
             <div class="mb-6">
                 <h2 class="text-2xl font-semibold flex items-center gap-2">
                     <UserCog class="size-6" />
@@ -268,6 +283,50 @@ const isProductionSelected = (productionId: number) => {
                     
                     <p v-if="form.errors.production_ids" class="text-sm text-red-500">{{ form.errors.production_ids }}</p>
                 </div>
+
+                <!-- Glue Spreader Menu Access (only for Staff) -->
+                <div v-if="isStaffRole" class="rounded-lg border p-4 space-y-4">
+                    <h3 class="font-medium text-lg flex items-center gap-2">
+                        <Wrench class="size-5" />
+                        Glue Spreader Access
+                    </h3>
+                    <p class="text-sm text-muted-foreground">
+                        Enable this to allow the staff to see and manage the Glue Spreader menu as a whole.
+                    </p>
+
+                    <label class="flex items-center gap-3 p-3 rounded-md border transition-colors hover:bg-muted/50">
+                        <input
+                            type="checkbox"
+                            v-model="form.can_access_glue_spreaders"
+                            class="rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                        <span class="text-sm">Can access Glue Spreader menu</span>
+                    </label>
+
+                    <p v-if="form.errors.can_access_glue_spreaders" class="text-sm text-red-500">{{ form.errors.can_access_glue_spreaders }}</p>
+                </div>
+
+                    <!-- Warehouse Menu Access (only for Staff) -->
+                    <div v-if="isStaffRole" class="rounded-lg border p-4 space-y-4">
+                        <h3 class="font-medium text-lg flex items-center gap-2">
+                            <Wrench class="size-5" />
+                            Warehouse Access
+                        </h3>
+                        <p class="text-sm text-muted-foreground">
+                            Enable this to allow the staff to see and manage the Warehouse menu as a whole.
+                        </p>
+
+                        <label class="flex items-center gap-3 p-3 rounded-md border transition-colors hover:bg-muted/50">
+                            <input
+                                type="checkbox"
+                                v-model="form.can_access_warehouse"
+                                class="rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                            <span class="text-sm">Can access Warehouse menu</span>
+                        </label>
+
+                        <p v-if="form.errors.can_access_warehouse" class="text-sm text-red-500">{{ form.errors.can_access_warehouse }}</p>
+                    </div>
 
                 <!-- Actions -->
                 <div class="flex items-center justify-end gap-3">

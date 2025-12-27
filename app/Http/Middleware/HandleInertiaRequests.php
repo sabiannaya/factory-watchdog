@@ -55,6 +55,7 @@ class HandleInertiaRequests extends Middleware
                     'is_super' => $user->isSuper(),
                     'is_staff' => $user->isStaff(),
                     'can_delete' => $user->canDelete(),
+                    'can_access_glue_spreaders' => $user->canAccessGlueSpreaders(),
                 ] : null,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',

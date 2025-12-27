@@ -85,6 +85,17 @@ Route::prefix('data-management')->middleware(['auth', 'verified'])->name('data-m
     Route::get('glue-spreaders/{glue_spreader}/edit', [App\Http\Controllers\GlueSpreaderController::class, 'edit'])->name('glue-spreaders.edit');
     Route::put('glue-spreaders/{glue_spreader}', [App\Http\Controllers\GlueSpreaderController::class, 'update'])->name('glue-spreaders.update');
     Route::delete('glue-spreaders/{glue_spreader}', [App\Http\Controllers\GlueSpreaderController::class, 'destroy'])->name('glue-spreaders.destroy');
+    Route::delete('glue-spreaders/{glue_spreader}/force', [App\Http\Controllers\GlueSpreaderController::class, 'forceDelete'])->name('glue-spreaders.force-delete');
+
+    // Warehouse records (similar permission model to Glue Spreader)
+    Route::get('warehouses', [App\Http\Controllers\WarehouseController::class, 'index'])->name('warehouses.index');
+    Route::get('warehouses/create', [App\Http\Controllers\WarehouseController::class, 'create'])->name('warehouses.create');
+    Route::post('warehouses', [App\Http\Controllers\WarehouseController::class, 'store'])->name('warehouses.store');
+    Route::get('warehouses/{warehouse}', [App\Http\Controllers\WarehouseController::class, 'show'])->name('warehouses.show');
+    Route::get('warehouses/{warehouse}/edit', [App\Http\Controllers\WarehouseController::class, 'edit'])->name('warehouses.edit');
+    Route::put('warehouses/{warehouse}', [App\Http\Controllers\WarehouseController::class, 'update'])->name('warehouses.update');
+    Route::delete('warehouses/{warehouse}', [App\Http\Controllers\WarehouseController::class, 'destroy'])->name('warehouses.destroy');
+    Route::delete('warehouses/{warehouse}/force', [App\Http\Controllers\WarehouseController::class, 'forceDelete'])->name('warehouses.force-delete');
 });
 
 // Input routes (hourly production input)
@@ -112,6 +123,8 @@ Route::prefix('logs')->middleware(['auth', 'verified'])->name('logs.')->group(fu
 
 // Summary routes (aggregate views)
 Route::prefix('summary')->middleware(['auth', 'verified'])->name('summary.')->group(function () {
+    Route::get('/daily', [App\Http\Controllers\DailySummaryController::class, 'index'])->name('daily');
+    Route::get('/daily/export', [App\Http\Controllers\DailySummaryController::class, 'export'])->name('daily.export');
     Route::get('/machine-groups', [App\Http\Controllers\AggregationController::class, 'machineGroups'])->name('machine-groups');
     Route::get('/machine-groups/export', [App\Http\Controllers\AggregationController::class, 'exportMachineGroups'])->name('machine-groups.export');
     Route::get('/productions', [App\Http\Controllers\AggregationController::class, 'productions'])->name('productions');

@@ -4,8 +4,9 @@ import { Head, router, Link } from '@inertiajs/vue3';
 import IconActionButton from '@/components/ui/IconActionButton.vue';
 import { Edit2 } from 'lucide-vue-next';
 import { type BreadcrumbItem } from '@/types';
-import { ref, watch, computed } from 'vue';
-import { ChevronDown } from 'lucide-vue-next';
+import { ref, watch, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { ChevronDown, Calendar } from 'lucide-vue-next';
+import { ref as vueRef } from 'vue';
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -43,12 +44,34 @@ const props = defineProps<{
 }>();
 
 const selectedProduction = ref(props.selectedProductionId);
+const triggerRef = ref<HTMLElement | null>(null);
+const triggerWidth = ref(0);
+
+const updateTriggerWidth = () => {
+    triggerWidth.value = triggerRef.value ? triggerRef.value.offsetWidth : 0;
+};
+
+onMounted(() => {
+    nextTick(updateTriggerWidth);
+    window.addEventListener('resize', updateTriggerWidth);
+});
+
+onBeforeUnmount(() => {
+    window.removeEventListener('resize', updateTriggerWidth);
+});
 const selectedDate = ref(props.selectedDate);
+const dateInputRef = vueRef<HTMLInputElement | null>(null);
+
+const focusDateInput = () => {
+    dateInputRef.value?.focus();
+    // some browsers need a click to open the calendar
+    dateInputRef.value?.click();
+};
 
 const selectedProductionLabel = computed(() => {
-    if (!selectedProduction.value) return '-- Choose Production --';
+    if (!selectedProduction.value) return 'Choose Production';
     const found = props.productions.find(p => p.production_id === selectedProduction.value);
-    return found ? found.production_name : '-- Choose Production --';
+    return found ? found.production_name : 'Choose Production';
 });
 
 const selectProduction = (id: number | null) => {
@@ -101,22 +124,22 @@ const getDefaultTarget = (machineGroupId: number, fieldName: string) => {
                         View and manage daily targets for production machine groups
                     </p>
                 </div>
-                <Link href="/data-management/targets/create" class="btn">Create Daily Targets</Link>
+                <Link href="/data-management/targets/create" class="hover:cursor-pointer btn">Create Daily Targets</Link>
             </div> -->
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
                     <label class="block text-sm font-medium mb-2">Select Production</label>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger :as-child="true">
-                            <button type="button" class="input w-full flex items-center justify-between">
+                    <DropdownMenu class="relative w-full">
+                        <DropdownMenuTrigger :as-child="true" :style="{ '--reka-dropdown-menu-trigger-width': triggerWidth + 'px' }">
+                            <button ref="triggerRef" type="button" class="input w-full flex items-center justify-between">
                                 <span class="truncate">{{ selectedProductionLabel }}</span>
                                 <ChevronDown class="ml-2 size-4" />
                             </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent class="min-w-[12rem]">
+                        <DropdownMenuContent align="start" :sideOffset="4" class="w-(--reka-dropdown-menu-trigger-width) min-w-[12rem]">
                             <DropdownMenuItem :as-child="true">
-                                <button class="block w-full text-left px-3 py-2 text-sm" @click="selectProduction(null)">-- Choose Production --</button>
+                                <button class="block w-full text-left px-3 py-2 text-sm" @click="selectProduction(null)">Choose Production</button>
                             </DropdownMenuItem>
                             <template v-for="prod in productions" :key="prod.production_id">
                                 <DropdownMenuItem :as-child="true">
@@ -128,11 +151,17 @@ const getDefaultTarget = (machineGroupId: number, fieldName: string) => {
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-2">Select Date</label>
-                    <input
-                        v-model="selectedDate"
-                        type="date"
-                        class="input w-full"
-                    />
+                    <div class="relative">
+                        <input
+                            v-model="selectedDate"
+                            type="date"
+                            class="input w-full pr-10"
+                            ref="dateInputRef"
+                        />
+                        <button type="button" class="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" @click="focusDateInput" aria-label="Open calendar">
+                            <Calendar class="h-4 w-4" />
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -155,7 +184,7 @@ const getDefaultTarget = (machineGroupId: number, fieldName: string) => {
                     <div class="space-y-4">
                         <!-- Target Fields -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                            <div v-for="field in mg.fields" :key="`${mg.production_machine_group_id}-target-${field}`" class="rounded-lg bg-muted/40 dark:bg-muted/40 p-3">
+                            <div v-for="field in mg.fields.filter(f => f !== 'qty')" :key="`${mg.production_machine_group_id}-target-${field}`" class="rounded-lg bg-muted/40 dark:bg-muted/40 p-3">
                                 <p class="text-sm font-medium mb-1 capitalize">{{ field.replace(/_/g, ' ') }}</p>
                                 <p class="text-lg font-semibold">
                                     {{ getValueForField(mg.production_machine_group_id, field, 'target') ?? 'Not set' }}

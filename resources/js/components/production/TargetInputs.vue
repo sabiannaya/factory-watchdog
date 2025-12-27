@@ -18,17 +18,41 @@ const emit = defineEmits<{
 }>();
 
 const inputFields = computed(() => {
-    if (!props.inputConfig?.fields) {
-        return ['qty'];
+    let fields = props.inputConfig?.fields ?? [];
+
+    // If nothing is configured, default to normal + reject
+    if (!fields.length) {
+        fields = ['qty_normal', 'qty_reject'];
     }
-    // Filter out keterangan as it's not a target field
-    return props.inputConfig.fields.filter(f => f !== 'keterangan');
+
+    // Migrate legacy 'qty' to the new pair
+    if (fields.includes('qty')) {
+        fields = fields.filter((f) => f !== 'qty');
+        if (!fields.includes('qty_normal')) fields.push('qty_normal');
+        if (!fields.includes('qty_reject')) fields.push('qty_reject');
+    }
+
+    // Filter out non-target fields
+    return fields.filter((f) => f !== 'keterangan');
+});
+
+const normalizedTargets = computed(() => {
+    const mapped: Record<string, number | null> = { ...props.targets };
+
+    if (mapped.qty !== undefined) {
+        if (mapped.qty_normal === undefined) {
+            mapped.qty_normal = mapped.qty as number | null;
+        }
+        delete mapped.qty;
+    }
+
+    return mapped;
 });
 
 const gradeTypes = computed(() => props.inputConfig?.grade_types || []);
 
 function updateTarget(field: string, value: number | null): void {
-    const newTargets = { ...props.targets };
+    const newTargets = { ...normalizedTargets.value };
     if (value === null || value === undefined) {
         delete newTargets[field];
     } else {
@@ -78,7 +102,7 @@ function updateGradeTarget(gradeType: string, value: number | null): void {
                 <input 
                     type="number" 
                     min="0" 
-                    :value="targets[field] ?? null"
+                    :value="normalizedTargets[field] ?? null"
                     @input="updateTarget(field, ($event.target as HTMLInputElement).value ? Number(($event.target as HTMLInputElement).value) : null)"
                     class="input" 
                     placeholder="Enter value"

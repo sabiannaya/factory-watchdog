@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\GlueSpreaderRequest;
 use App\Models\GlueSpreader;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class GlueSpreaderController extends Controller
@@ -44,6 +45,12 @@ class GlueSpreaderController extends Controller
                 'washes_per_day' => (int) $g->washes_per_day,
                 'glue_loss_kg' => (float) $g->glue_loss_kg,
                 'notes' => $g->notes,
+                'is_active' => $g->is_active,
+                'created_at' => $g->created_at?->toDateTimeString(),
+                'created_by' => $g->creator?->name,
+                'updated_at' => $g->updated_at?->toDateTimeString(),
+                'modified_by' => $g->modifier?->name,
+                'deleted_at' => $g->deleted_at?->toDateTimeString(),
             ];
         })->all();
 
@@ -67,6 +74,8 @@ class GlueSpreaderController extends Controller
      */
     public function create()
     {
+        $this->authorize('create', GlueSpreader::class);
+
         return Inertia::render('data-management/GlueSpreaders/Create');
     }
 
@@ -75,6 +84,8 @@ class GlueSpreaderController extends Controller
      */
     public function store(GlueSpreaderRequest $request)
     {
+        $this->authorize('create', GlueSpreader::class);
+
         GlueSpreader::create($request->validated());
 
         return redirect()->route('data-management.glue-spreaders.index')->with('success', 'Glue Spreader created.');
@@ -85,6 +96,8 @@ class GlueSpreaderController extends Controller
      */
     public function show(GlueSpreader $glue_spreader)
     {
+        $this->authorize('view', $glue_spreader);
+
         return Inertia::render('data-management/GlueSpreaders/Show', [
             'glueSpreader' => [
                 'id' => $glue_spreader->glue_spreader_id,
@@ -99,6 +112,11 @@ class GlueSpreaderController extends Controller
                 'washes_per_day' => (int) $glue_spreader->washes_per_day,
                 'glue_loss_kg' => (float) $glue_spreader->glue_loss_kg,
                 'notes' => $glue_spreader->notes,
+                'is_active' => $glue_spreader->is_active,
+                'created_by' => $glue_spreader->creator?->name,
+                'modified_by' => $glue_spreader->modifier?->name,
+                'deleted_at' => $glue_spreader->deleted_at?->toDateTimeString(),
+                'deleted_by' => $glue_spreader->deleter?->name,
             ],
         ]);
     }
@@ -108,6 +126,8 @@ class GlueSpreaderController extends Controller
      */
     public function edit(GlueSpreader $glue_spreader)
     {
+        $this->authorize('update', $glue_spreader);
+
         return Inertia::render('data-management/GlueSpreaders/Edit', [
             'glueSpreader' => [
                 'id' => $glue_spreader->glue_spreader_id,
@@ -122,6 +142,7 @@ class GlueSpreaderController extends Controller
                 'washes_per_day' => (int) $glue_spreader->washes_per_day,
                 'glue_loss_kg' => (float) $glue_spreader->glue_loss_kg,
                 'notes' => $glue_spreader->notes,
+                'is_active' => $glue_spreader->is_active,
             ],
         ]);
     }
@@ -131,18 +152,37 @@ class GlueSpreaderController extends Controller
      */
     public function update(GlueSpreaderRequest $request, GlueSpreader $glue_spreader)
     {
+        $this->authorize('update', $glue_spreader);
+
         $glue_spreader->update($request->validated());
 
         return redirect()->route('data-management.glue-spreaders.index')->with('success', 'Glue Spreader updated.');
     }
 
     /**
-     * Remove the specified glue spreader from storage.
+     * Soft delete the specified glue spreader from storage.
      */
     public function destroy(GlueSpreader $glue_spreader)
     {
+        $this->authorize('delete', $glue_spreader);
+
+        $glue_spreader->deleted_by = Auth::id();
+        $glue_spreader->save();
         $glue_spreader->delete();
 
         return redirect()->route('data-management.glue-spreaders.index')->with('success', 'Glue Spreader deleted.');
+    }
+
+    /**
+     * Permanently delete the specified glue spreader from storage.
+     * Only Super can force delete.
+     */
+    public function forceDelete(GlueSpreader $glue_spreader)
+    {
+        $this->authorize('forceDelete', $glue_spreader);
+
+        $glue_spreader->forceDelete();
+
+        return redirect()->route('data-management.glue-spreaders.index')->with('success', 'Glue Spreader permanently deleted.');
     }
 }

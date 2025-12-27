@@ -33,6 +33,7 @@ class GlueSpreaderRequest extends FormRequest
             'washes_per_day' => ['required', 'integer', 'min:0'],
             'glue_loss_kg' => ['required', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
+            'is_active' => ['boolean'],
         ];
     }
 }

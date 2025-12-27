@@ -6,7 +6,6 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { logout } from '@/routes';
 import { edit } from '@/routes/profile';
 import type { User } from '@/types';
 import { Link, router } from '@inertiajs/vue3';
@@ -16,8 +15,15 @@ interface Props {
     user: User;
 }
 
-const handleLogout = () => {
-    router.flushAll();
+const logout = () => {
+    router.post('/logout', {}, {
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+        },
+        onFinish: () => {
+            router.visit('/');
+        }
+    });
 };
 
 defineProps<Props>();
@@ -32,23 +38,17 @@ defineProps<Props>();
     <DropdownMenuSeparator />
     <DropdownMenuGroup>
         <DropdownMenuItem :as-child="true">
-            <Link class="block w-full" :href="edit()" prefetch as="button">
+            <Link class="block w-full cursor-pointer" :href="edit()" prefetch as="button">
                 <Settings class="mr-2 h-4 w-4" />
                 Settings
             </Link>
         </DropdownMenuItem>
+
+        <DropdownMenuItem :as-child="true">
+            <button class="block w-full text-left cursor-pointer" @click="logout">
+                <LogOut class="mr-2 h-4 w-4" />
+                Log out
+            </button>
+        </DropdownMenuItem>
     </DropdownMenuGroup>
-    <DropdownMenuSeparator />
-    <DropdownMenuItem :as-child="true">
-        <Link
-            class="block w-full"
-            :href="logout()"
-            @click="handleLogout"
-            as="button"
-            data-test="logout-button"
-        >
-            <LogOut class="mr-2 h-4 w-4" />
-            Log out
-        </Link>
-    </DropdownMenuItem>
 </template>

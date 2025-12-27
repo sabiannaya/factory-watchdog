@@ -88,7 +88,7 @@ router.on('finish', () => (loading.value = false));
             <div class="flex items-center justify-between">
                 <div>
                     <h2 class="text-2xl font-semibold">Production Aggregates</h2>
-                    <p class="text-sm text-muted-foreground">Aggregated output/target per production (sums across groups)</p>
+                    <p class="text-sm text-muted-foreground">Aggregated output per production (sums across groups)</p>
                 </div>
                 <button @click="exportToExcel" class="btn-secondary flex items-center gap-2">
                     <FileDown class="size-4" />
@@ -101,29 +101,36 @@ router.on('finish', () => (loading.value = false));
                 <input type="date" class="input" v-model="dateFrom" :disabled="loading" />
                 <label class="text-sm">To</label>
                 <input type="date" class="input" v-model="dateTo" :disabled="loading" />
-                <button class="btn" @click="onDateFilter" :disabled="loading">Apply</button>
+                <button class="hover:cursor-pointer btn" @click="onDateFilter" :disabled="loading">Apply</button>
             </div>
 
             <DataTable serverMode :data="dataSource" :columns="[
                 { key: 'production_id', label: 'ID', type: 'number', sortable: false, findable: false },
                 { key: 'production_name', label: 'Production', type: 'string', sortable: true, findable: true },
                 { key: 'group_count', label: 'Groups', type: 'number', sortable: true, findable: false },
-                { key: 'total_target', label: 'Target', type: 'number', sortable: true, findable: false },
-                { key: 'total_output', label: 'Output', type: 'number', sortable: true, findable: false },
+                { key: 'total_target_qty_normal', label: 'Target Normal', type: 'number', sortable: true, findable: false },
+                { key: 'total_target_qty_reject', label: 'Target Reject', type: 'number', sortable: true, findable: false },
+                { key: 'total_output_qty_normal', label: 'Output Normal', type: 'number', sortable: true, findable: false },
+                { key: 'total_output_qty_reject', label: 'Output Reject', type: 'number', sortable: true, findable: false },
+                { key: 'total_target', label: 'Target Total', type: 'number', sortable: true, findable: false },
+                { key: 'total_output', label: 'Total Output', type: 'number', sortable: true, findable: false },
                 { key: 'variance', label: 'Variance', type: 'number', sortable: false, findable: false },
             ]" :per-page="20" :initial-sort="props.meta?.sort ?? 'total_output'" :initial-direction="props.meta?.direction ?? 'desc'" :loading="loading" @server-search="onServerSearch" @server-sort="onServerSort">
                 <template #cell="{ row, column }">
                     <template v-if="column.key === 'total_output'">
-                        <div class="flex flex-col">
+                        <div class="flex flex-col items-end">
                             <span class="font-medium">{{ Number(row.total_output_qty_normal ?? 0).toLocaleString() }}</span>
                             <span class="text-xs text-red-500">rej: {{ Number(row.total_output_qty_reject ?? 0).toLocaleString() }}</span>
                         </div>
                     </template>
                     <template v-else-if="column.key === 'total_target'">
-                        <div class="flex flex-col">
+                        <div class="flex flex-col items-end">
                             <span class="font-medium">{{ Number(row.total_target_qty_normal ?? 0).toLocaleString() }}</span>
                             <span class="text-xs text-muted-foreground">rej: {{ Number(row.total_target_qty_reject ?? 0).toLocaleString() }}</span>
                         </div>
+                    </template>
+                    <template v-else-if="column.key === 'variance'">
+                        <span :class="(row.variance ?? 0) >= 0 ? 'text-emerald-600 font-medium' : 'text-red-600 font-medium'">{{ (row.variance >= 0 ? '+' : '') + Number(row.variance ?? 0).toLocaleString() }}</span>
                     </template>
                     <template v-else>
                         {{ row[column.key] }}
@@ -132,8 +139,8 @@ router.on('finish', () => (loading.value = false));
             </DataTable>
 
             <div class="mt-4 flex items-center justify-end gap-2">
-                <button class="btn" :disabled="!props.aggregates?.prev_page || loading" @click="goPrev">Previous</button>
-                <button class="btn" :disabled="!props.aggregates?.next_page || loading" @click="goNext">Next</button>
+                <button class="hover:cursor-pointer btn" :disabled="!props.aggregates?.prev_page || loading" @click="goPrev">Previous</button>
+                <button class="hover:cursor-pointer btn" :disabled="!props.aggregates?.next_page || loading" @click="goNext">Next</button>
             </div>
         </div>
     </AppLayout>

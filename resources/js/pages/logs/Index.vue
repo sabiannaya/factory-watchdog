@@ -180,7 +180,7 @@ router.on('finish', () => (loading.value = false));
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
-                <button class="btn" @click="onDateFilter" :disabled="loading">Apply</button>
+                <button class="hover:cursor-pointer btn" @click="onDateFilter" :disabled="loading">Apply</button>
             </div>
 
             <DataTable 
@@ -206,8 +206,8 @@ router.on('finish', () => (loading.value = false));
             />
 
             <div class="mt-4 flex items-center justify-end gap-2">
-                <button class="btn" :disabled="!props.hourlyLogs?.prev_cursor || loading" @click="goPrev">Previous</button>
-                <button class="btn" :disabled="!props.hourlyLogs?.next_cursor || loading" @click="goNext">Next</button>
+                <button class="hover:cursor-pointer btn" :disabled="!props.hourlyLogs?.prev_cursor || loading" @click="goPrev">Previous</button>
+                <button class="hover:cursor-pointer btn" :disabled="!props.hourlyLogs?.next_cursor || loading" @click="goNext">Next</button>
             </div>
         </div>
     </AppLayout>

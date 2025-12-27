@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\GlueSpreader;
 use App\Models\MachineGroup;
 use App\Models\Production;
+use App\Policies\GlueSpreaderPolicy;
 use App\Policies\MachineGroupPolicy;
 use App\Policies\ProductionPolicy;
 use Illuminate\Support\Facades\Gate;
@@ -27,5 +29,6 @@ class AppServiceProvider extends ServiceProvider
         // Register policies
         Gate::policy(Production::class, ProductionPolicy::class);
         Gate::policy(MachineGroup::class, MachineGroupPolicy::class);
+        Gate::policy(GlueSpreader::class, GlueSpreaderPolicy::class);
     }
 }

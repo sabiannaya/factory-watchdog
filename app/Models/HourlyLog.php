@@ -25,11 +25,6 @@ class HourlyLog extends Model
         'output_grades',
         'output_grade',
         'output_ukuran',
-        'target_qty_normal',
-        'target_qty_reject',
-        'target_grades',
-        'target_grade',
-        'target_ukuran',
         'keterangan',
         'created_by',
         'modified_by',
@@ -38,7 +33,6 @@ class HourlyLog extends Model
     protected $casts = [
         'recorded_at' => 'datetime',
         'output_grades' => 'array',
-        'target_grades' => 'array',
     ];
 
     protected static function booted()
@@ -113,30 +107,6 @@ class HourlyLog extends Model
 
         if ($this->output_grades !== null && is_array($this->output_grades)) {
             foreach ($this->output_grades as $gradeValue) {
-                $total += (int) ($gradeValue ?? 0);
-            }
-        }
-
-        return $total;
-    }
-
-    /**
-     * Calculate total target value by summing all target fields.
-     */
-    public function getTotalTargetAttribute(): int
-    {
-        $total = 0;
-
-        if ($this->target_qty_normal !== null) {
-            $total += (int) $this->target_qty_normal;
-        }
-
-        if ($this->target_qty_reject !== null) {
-            $total += (int) $this->target_qty_reject;
-        }
-
-        if ($this->target_grades !== null && is_array($this->target_grades)) {
-            foreach ($this->target_grades as $gradeValue) {
                 $total += (int) ($gradeValue ?? 0);
             }
         }

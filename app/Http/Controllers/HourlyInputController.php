@@ -301,10 +301,6 @@ class HourlyInputController extends Controller
             ])->withInput();
         }
 
-        // Get target values for each field
-        $targetQtyNormal = $this->getTargetValue($pmg, $validated['date'], 'qty_normal');
-        $targetQtyReject = $this->getTargetValue($pmg, $validated['date'], 'qty_reject');
-
         try {
             HourlyLog::create([
                 'production_machine_group_id' => $validated['production_machine_group_id'],
@@ -314,8 +310,6 @@ class HourlyInputController extends Controller
                 'output_grades' => $validated['output_grades'] ?? null,
                 'output_grade' => $validated['output_grade'] ?? null,
                 'output_ukuran' => $validated['output_ukuran'] ?? null,
-                'target_qty_normal' => $targetQtyNormal,
-                'target_qty_reject' => $targetQtyReject,
                 'keterangan' => $validated['keterangan'] ?? null,
             ]);
         } catch (QueryException $e) {
@@ -367,14 +361,8 @@ class HourlyInputController extends Controller
                 'output_grades' => $hourlyLog->output_grades,
                 'output_grade' => $hourlyLog->output_grade,
                 'output_ukuran' => $hourlyLog->output_ukuran,
-                'target_qty_normal' => $hourlyLog->target_qty_normal,
-                'target_qty_reject' => $hourlyLog->target_qty_reject,
-                'target_grades' => $hourlyLog->target_grades,
-                'target_grade' => $hourlyLog->target_grade,
-                'target_ukuran' => $hourlyLog->target_ukuran,
                 'keterangan' => $hourlyLog->keterangan,
                 'total_output' => $hourlyLog->total_output,
-                'total_target' => $hourlyLog->total_target,
                 'created_by' => $hourlyLog->creator?->name,
                 'modified_by' => $hourlyLog->modifier?->name,
                 'created_at' => $hourlyLog->created_at->format('Y-m-d H:i:s'),
@@ -414,11 +402,6 @@ class HourlyInputController extends Controller
                 'output_grades' => $hourlyLog->output_grades,
                 'output_grade' => $hourlyLog->output_grade,
                 'output_ukuran' => $hourlyLog->output_ukuran,
-                'target_qty_normal' => $hourlyLog->target_qty_normal,
-                'target_qty_reject' => $hourlyLog->target_qty_reject,
-                'target_grades' => $hourlyLog->target_grades,
-                'target_grade' => $hourlyLog->target_grade,
-                'target_ukuran' => $hourlyLog->target_ukuran,
                 'keterangan' => $hourlyLog->keterangan,
             ],
             'inputConfig' => $inputConfig,
@@ -457,10 +440,6 @@ class HourlyInputController extends Controller
             ->setMinute(0)
             ->setSecond(0);
 
-        // Get updated target values
-        $targetQtyNormal = $this->getTargetValue($hourlyLog->productionMachineGroup, $validated['date'], 'qty_normal');
-        $targetQtyReject = $this->getTargetValue($hourlyLog->productionMachineGroup, $validated['date'], 'qty_reject');
-
         $hourlyLog->update([
             'recorded_at' => $recordedAt,
             'output_qty_normal' => $validated['output_qty_normal'] ?? null,
@@ -468,8 +447,6 @@ class HourlyInputController extends Controller
             'output_grades' => $validated['output_grades'] ?? null,
             'output_grade' => $validated['output_grade'] ?? null,
             'output_ukuran' => $validated['output_ukuran'] ?? null,
-            'target_qty_normal' => $targetQtyNormal,
-            'target_qty_reject' => $targetQtyReject,
             'keterangan' => $validated['keterangan'] ?? null,
         ]);
 

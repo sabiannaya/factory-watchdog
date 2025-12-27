@@ -26,10 +26,10 @@ class DatabaseSeeder extends Seeder
             'role_id' => $superRole?->role_id,
         ]);
 
-        $this->call([
-            ProductionSeeder::class,
-            ProductSeeder::class,
-            GlueSpreaderSeeder::class,
-        ]);
+        // $this->call([
+        //     ProductionSeeder::class,
+        //     ProductSeeder::class,
+        //     GlueSpreaderSeeder::class,
+        // ]);
     }
 }

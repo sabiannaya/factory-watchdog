@@ -93,7 +93,7 @@ function submit() {
         </div>
 
         <div class="flex items-center gap-3" v-if="!isShow">
-            <button type="submit" class="btn">Save</button>
+            <button type="submit" class="hover:cursor-pointer btn">Save</button>
             <button type="button" class="btn btn-ghost" @click="form.reset()">Reset</button>
         </div>
     </form>

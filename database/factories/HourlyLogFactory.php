@@ -17,8 +17,8 @@ class HourlyLogFactory extends Factory
         return [
             'production_machine_group_id' => null,
             'recorded_at' => $this->faker->dateTimeBetween('-1 days', 'now'),
-            'output_value' => $this->faker->numberBetween(0, 200),
-            'target_value' => $this->faker->optional()->numberBetween(10, 300),
+            'output_qty_normal' => $this->faker->numberBetween(0, 200),
+            'output_qty_reject' => $this->faker->numberBetween(0, 50),
         ];
     }
 }

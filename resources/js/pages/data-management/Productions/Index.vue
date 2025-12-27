@@ -133,7 +133,7 @@ const confirmDelete = (id: number | string) => {
                     <h2 class="text-2xl font-semibold">Production</h2>
                     <p class="text-sm text-muted-foreground">Manage production records</p>
                 </div>
-                <button class="btn" @click="router.get('/data-management/production/create')">
+                <button class="hover:cursor-pointer btn" @click="router.get('/data-management/production/create')">
                     Create Production
                 </button>
             </div>
@@ -187,8 +187,8 @@ const confirmDelete = (id: number | string) => {
             </DataTable>
 
             <div class="mt-4 flex items-center justify-end gap-2">
-                <button class="btn" :disabled="!props.productions?.prev_cursor" @click="goPrev">Previous</button>
-                <button class="btn" :disabled="!props.productions?.next_cursor" @click="goNext">Next</button>
+                <button class="hover:cursor-pointer btn" :disabled="!props.productions?.prev_cursor" @click="goPrev">Previous</button>
+                <button class="hover:cursor-pointer btn" :disabled="!props.productions?.next_cursor" @click="goNext">Next</button>
             </div>
         </div>
     </AppLayout>

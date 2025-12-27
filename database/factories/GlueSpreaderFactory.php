@@ -27,17 +27,10 @@ class GlueSpreaderFactory extends Factory
             'washes_per_day' => $this->faker->numberBetween(0, 5),
             'glue_loss_kg' => $this->faker->randomFloat(2, 0, 20),
             'notes' => $this->faker->optional()->sentence(),
-            // operator/daily data (English keys)
-            'glue_kg' => $this->faker->randomFloat(2, 0, 500),
-            'hardener_kg' => $this->faker->randomFloat(2, 0, 100),
-            'powder_kg' => $this->faker->randomFloat(2, 0, 200),
-            'colorant_kg' => $this->faker->randomFloat(2, 0, 50),
-            'anti_termite_kg' => $this->faker->randomFloat(2, 0, 20),
-            'viscosity' => $this->faker->randomElement(['low', 'medium', 'high']),
-            'washes_per_day' => $this->faker->numberBetween(0, 10),
-            'glue_loss_kg' => $this->faker->randomFloat(2, 0, 50),
+            'is_active' => true,
             'created_by' => 1,
             'modified_by' => null,
+            'deleted_by' => null,
         ];
     }
 }

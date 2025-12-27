@@ -3,7 +3,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
 import { ref, computed, watch } from 'vue';
-import { UserPlus, Shield, Users, Eye, EyeOff, ChevronDown } from 'lucide-vue-next';
+import { UserPlus, Shield, Users, Eye, EyeOff, ChevronDown, Wrench } from 'lucide-vue-next';
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -12,6 +12,15 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import AlertDialog from '@/components/ui/alert-dialog/AlertDialog.vue';
+import AlertDialogAction from '@/components/ui/alert-dialog/AlertDialogAction.vue';
+import AlertDialogCancel from '@/components/ui/alert-dialog/AlertDialogCancel.vue';
+import AlertDialogContent from '@/components/ui/alert-dialog/AlertDialogContent.vue';
+import AlertDialogDescription from '@/components/ui/alert-dialog/AlertDialogDescription.vue';
+import AlertDialogHeader from '@/components/ui/alert-dialog/AlertDialogHeader.vue';
+import AlertDialogTitle from '@/components/ui/alert-dialog/AlertDialogTitle.vue';
+import ToastNotifications from '@/components/ToastNotifications.vue';
+import { useToast } from '@/composables/useToast';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Admin', href: '/admin/users' },
@@ -42,6 +51,8 @@ const form = useForm({
     password_confirmation: '',
     role_id: '' as number | string,
     production_ids: [] as number[],
+    can_access_glue_spreaders: false,
+    can_access_warehouse: false,
 });
 
 const showPassword = ref(false);
@@ -72,9 +83,30 @@ watch(() => form.role_id, (newRoleId) => {
     }
 });
 
-const submit = () => {
+const { success, error } = useToast();
+
+const showConfirmDialog = ref(false);
+const submitting = ref(false);
+
+const onSubmit = () => {
+    showConfirmDialog.value = true;
+};
+
+const confirmSubmit = () => {
+    submitting.value = true;
     form.post('/admin/users', {
         preserveScroll: true,
+        onSuccess: () => {
+            success('User created', 'New user has been created');
+            router.get('/admin/users');
+        },
+        onError: () => {
+            error('Failed to create', 'There was an error creating the user');
+        },
+        onFinish: () => {
+            submitting.value = false;
+            showConfirmDialog.value = false;
+        },
     });
 };
 
@@ -105,7 +137,7 @@ const isProductionSelected = (productionId: number) => {
                 <p class="text-sm text-muted-foreground">Add a new user to the system</p>
             </div>
 
-            <form @submit.prevent="submit" class="space-y-6">
+            <form @submit.prevent="onSubmit" class="space-y-6">
                 <!-- Basic Info -->
                 <div class="rounded-lg border p-4 space-y-4">
                     <h3 class="font-medium text-lg">Basic Information</h3>
@@ -200,7 +232,7 @@ const isProductionSelected = (productionId: number) => {
                                     <ChevronDown class="ml-2 size-4" />
                                 </button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent class="min-w-[12rem]">
+                            <DropdownMenuContent class="w-[var(--reka-dropdown-menu-trigger-width)] max-w-none">
                                 <DropdownMenuItem :as-child="true">
                                     <button class="block w-full text-left px-3 py-2 text-sm" @click="selectRole('')">Select a role</button>
                                 </DropdownMenuItem>
@@ -258,6 +290,46 @@ const isProductionSelected = (productionId: number) => {
                     <p v-if="form.errors.production_ids" class="text-sm text-red-500">{{ form.errors.production_ids }}</p>
                 </div>
 
+                <!-- Glue Spreader Menu Access (only for Staff) -->
+                <div v-if="isStaffRole" class="rounded-lg border p-4 space-y-4">
+                    <h3 class="font-medium text-lg flex items-center gap-2">
+                        <Wrench class="size-5" />
+                        Glue Spreader Access
+                    </h3>
+                    <p class="text-sm text-muted-foreground">
+                        Enable this to allow the staff to see and manage the Glue Spreader menu as a whole.
+                    </p>
+
+                    <label class="flex items-center gap-3 p-3 rounded-md border transition-colors hover:bg-muted/50">
+                        <input
+                            type="checkbox"
+                            v-model="form.can_access_glue_spreaders"
+                            class="rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                        <span class="text-sm">Can access Glue Spreader menu</span>
+                    </label>
+                </div>
+
+                <!-- Warehouse Menu Access (only for Staff) -->
+                <div v-if="isStaffRole" class="rounded-lg border p-4 space-y-4">
+                    <h3 class="font-medium text-lg flex items-center gap-2">
+                        <Wrench class="size-5" />
+                        Warehouse Access
+                    </h3>
+                    <p class="text-sm text-muted-foreground">
+                        Enable this to allow the staff to see and manage the Warehouse menu as a whole.
+                    </p>
+
+                    <label class="flex items-center gap-3 p-3 rounded-md border transition-colors hover:bg-muted/50">
+                        <input
+                            type="checkbox"
+                            v-model="form.can_access_warehouse"
+                            class="rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                        <span class="text-sm">Can access Warehouse menu</span>
+                    </label>
+                </div>
+
                 <!-- Actions -->
                 <div class="flex items-center justify-end gap-3">
                     <button
@@ -276,6 +348,43 @@ const isProductionSelected = (productionId: number) => {
                     </button>
                 </div>
             </form>
+
+            <AlertDialog :open="showConfirmDialog" @update:open="showConfirmDialog = $event">
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Confirm Create User</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to create this user?
+                        </AlertDialogDescription>
+
+                        <div class="mt-4 border-t pt-3">
+                            <h3 class="text-sm font-medium mb-2">Preview</h3>
+                            <div class="rounded-lg bg-muted/50 p-3 text-sm">
+                                <div><strong>Name:</strong> {{ form.name || '-' }}</div>
+                                <div><strong>Email:</strong> {{ form.email || '-' }}</div>
+                                <div><strong>Role:</strong> {{ selectedRoleLabel }}</div>
+                                <div class="mt-2">
+                                    <strong>Productions:</strong>
+                                    <div v-if="form.production_ids && form.production_ids.length" class="mt-1">
+                                        <ul class="list-disc list-inside">
+                                            <li v-for="p in productions.filter(pr => form.production_ids.includes(pr.production_id))" :key="p.production_id">{{ p.production_name }}</li>
+                                        </ul>
+                                    </div>
+                                    <div v-else class="text-sm">None</div>
+                                </div>
+                            </div>
+                        </div>
+                    </AlertDialogHeader>
+
+                    <div class="flex justify-end gap-2 mt-4">
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction @click="confirmSubmit" :disabled="submitting" class="hover:cursor-pointer btn">Create User</AlertDialogAction>
+                    </div>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <ToastNotifications />
+
         </div>
     </AppLayout>
 </template>

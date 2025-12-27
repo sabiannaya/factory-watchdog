@@ -20,13 +20,11 @@ const props = defineProps<{
         total_productions: number;
         active_productions: number;
         total_machine_groups: number;
-        today_performance: number;
         today_actual: number;
-        today_target: number;
+        yesterday_actual: number;
     };
     dailyTrends?: Array<{
         date: string;
-        target: number;
         actual: number;
     }>;
     recentLogs?: Array<{
@@ -34,9 +32,7 @@ const props = defineProps<{
         machine_group: string;
         recorded_at: string;
         output_normal: number;
-        target_normal: number;
         output_reject: number;
-        target_reject: number;
     }>;
     groupDistributionNormal?: Array<{ machine_group: string; total_output: number }>;
     groupDistributionReject?: Array<{ machine_group: string; total_output: number }>;
@@ -47,9 +43,8 @@ const stats = props.stats ?? {
     total_productions: 0,
     active_productions: 0,
     total_machine_groups: 0,
-    today_performance: 0,
     today_actual: 0,
-    today_target: 0,
+    yesterday_actual: 0,
 };
 
 import { ref, onMounted, computed } from 'vue';
@@ -103,57 +98,25 @@ function formatDateTime(value: string | null | undefined): string {
     }).replace(/,\s*(\d{2})$/, ', $1:00');
 }
 
-// Performance / delta helpers
+// Delta helpers
 const yesterdayActual = computed(() => stats.yesterday_actual ?? 0)
-const yesterdayTarget = computed(() => stats.yesterday_target ?? 0)
 const todayActual = computed(() => stats.today_actual ?? 0)
-const todayTarget = computed(() => stats.today_target ?? 0)
-
-const fmtPct = (v: number | null | undefined) => `${Math.round((v ?? 0) * 10) / 10}%`
-
-const yesterdayPercent = computed(() => fmtPct(stats.yesterday_performance ?? 0))
-const todayPercent = computed(() => fmtPct(stats.today_performance ?? 0))
-
-const yesterdayLabel = computed(() => `${yesterdayActual.value} / ${yesterdayTarget.value}`)
-const todayLabel = computed(() => `${todayActual.value} / ${todayTarget.value}`)
 
 const deltaUnits = computed(() => (todayActual.value - yesterdayActual.value))
-const deltaPercent = computed(() => {
-    const t = stats.today_performance ?? 0
-    const y = stats.yesterday_performance ?? 0
-    const diff = t - y
-    return Math.round(diff * 10) / 10
-})
 
 const todayTrend = computed(() => {
-    const tPerf = stats.today_performance ?? 0
-    const yPerf = stats.yesterday_performance ?? 0
-    const dir = tPerf > yPerf ? 'up' : (tPerf < yPerf ? 'down' : 'neutral')
-    const meetsTarget = (todayActual.value >= todayTarget.value)
+    const dir = todayActual.value > yesterdayActual.value ? 'up' : (todayActual.value < yesterdayActual.value ? 'down' : 'neutral')
     let color = 'gray'
     if (dir === 'up') {
-        color = meetsTarget ? 'green' : 'yellow'
+        color = 'green'
     } else if (dir === 'down') {
         color = 'red'
     }
-    const deltaLabel = `${deltaPercent.value >= 0 ? '+' : ''}${deltaPercent.value}%`
-    const deltaPercentLabel = deltaLabel
     const deltaUnitsLabel = `${deltaUnits.value >= 0 ? '+' : ''}${deltaUnits.value}`
     return {
         direction: dir,
         color,
-        deltaLabel,
-        deltaPercentLabel,
         deltaUnitsLabel,
-    }
-})
-
-const deltaColorClass = computed(() => {
-    switch (todayTrend.value.color) {
-        case 'green': return 'text-green-600'
-        case 'yellow': return 'text-amber-600'
-        case 'red': return 'text-red-600'
-        default: return 'text-gray-600'
     }
 })
 </script>
@@ -164,7 +127,7 @@ const deltaColorClass = computed(() => {
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
             <!-- Quick Stats -->
-            <div class="grid gap-4 md:grid-cols-4">
+            <div class="grid gap-4 md:grid-cols-3">
                 <StatCard
                     title="Total Productions"
                     :value="stats.total_productions"
@@ -174,35 +137,13 @@ const deltaColorClass = computed(() => {
                     title="Machine Groups"
                     :value="stats.total_machine_groups"
                 />
-                <div :title="`Yesterday: ${yesterdayActual} / ${yesterdayTarget} — ${yesterdayPercent} performance`">
-                        <div class="col-span-2">
-                            <div class="relative group h-full">
-                                <StatCard title="Yesterday Performance" :value="yesterdayPercent" :subtitle="yesterdayLabel" :trend="'neutral'" />
-                                <div class="pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 absolute right-0 top-full mt-2 w-64 z-20">
-                                    <div class="rounded-md bg-white dark:bg-zinc-900 border shadow-md p-3 text-xs text-muted-foreground">
-                                        <div class="font-medium mb-1">Yesterday details</div>
-                                        <div>Actual: <span class="font-semibold">{{ yesterdayActual }} / {{ yesterdayTarget }}</span></div>
-                                        <div>Performance: <span class="font-semibold">{{ yesterdayPercent }}</span></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                </div>
-                <div :title="`Today: ${todayActual} / ${todayTarget} — ${todayPercent} performance`">
-                        <div class="col-span-2">
-                            <div class="relative group h-full">
-                                <StatCard title="Today Performance" :value="todayPercent" :subtitle="todayLabel" :trend="todayTrend.direction" :trendValue="todayTrend.deltaLabel" />
-                                <div class="pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 absolute right-0 top-full mt-2 w-72 z-20">
-                                    <div class="rounded-md bg-white dark:bg-zinc-900 border shadow-md p-3 text-xs text-muted-foreground">
-                                        <div class="font-medium mb-1">Today details</div>
-                                        <div>Actual: <span class="font-semibold">{{ todayActual }} / {{ todayTarget }}</span></div>
-                                        <div>Delta vs Yesterday: <span :class="deltaColorClass" class="font-semibold">{{ todayTrend.deltaPercentLabel }} ({{ todayTrend.deltaUnitsLabel }})</span></div>
-                                        <div class="text-2xs text-muted-foreground mt-1">Arrow shows direction vs yesterday. Color: green = improved and meeting target; yellow = improved but below target; red = worse than yesterday.</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                </div>
+                <StatCard
+                    title="Today Output"
+                    :value="todayActual"
+                    :subtitle="`vs ${yesterdayActual} yesterday`"
+                    :trend="todayTrend.direction"
+                    :trendValue="todayTrend.deltaUnitsLabel"
+                />
             </div>
 
             <!-- Charts Row (responsive) -->
@@ -249,11 +190,7 @@ const deltaColorClass = computed(() => {
                                 <th class="px-4 py-2 text-left text-sm font-medium">Machine Group</th>
                                 <th class="px-4 py-2 text-left text-sm font-medium">Time</th>
                                 <th class="px-4 py-2 text-right text-sm font-medium">Output (Normal)</th>
-                                <th class="px-4 py-2 text-right text-sm font-medium">Target (Normal)</th>
                                 <th class="px-4 py-2 text-right text-sm font-medium">Output (Reject)</th>
-                                <th class="px-4 py-2 text-right text-sm font-medium">Target (Reject)</th>
-                                <th class="px-4 py-2 text-right text-sm font-medium">Variance (Reject)</th>
-                                <th class="px-4 py-2 text-right text-sm font-medium">Variance (Normal)</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-sidebar-border/70">
@@ -262,27 +199,7 @@ const deltaColorClass = computed(() => {
                                 <td class="px-4 py-2 text-sm">{{ log.machine_group }}</td>
                                 <td class="px-4 py-2 text-sm text-muted-foreground">{{ formatDateTime(log.recorded_at) }}</td>
                                 <td class="px-4 py-2 text-sm text-right">{{ log.output_normal }}</td>
-                                <td class="px-4 py-2 text-sm text-right">{{ log.target_normal }}</td>
                                 <td class="px-4 py-2 text-sm text-right">{{ log.output_reject }}</td>
-                                <td class="px-4 py-2 text-sm text-right">{{ log.target_reject }}</td>
-                                <td 
-                                    class="px-4 py-2 text-sm text-right font-medium"
-                                    :class="{
-                                        'text-green-600': log.output_reject <= log.target_reject,
-                                        'text-red-600': log.output_reject > log.target_reject,
-                                    }"
-                                >
-                                    {{ log.target_reject - log.output_reject >= 0 ? '+' : '' }}{{ log.target_reject - log.output_reject }}
-                                </td>
-                                <td 
-                                    class="px-4 py-2 text-sm text-right font-medium"
-                                    :class="{
-                                        'text-green-600': log.output_normal >= log.target_normal,
-                                        'text-red-600': log.output_normal < log.target_normal,
-                                    }"
-                                >
-                                    {{ log.output_normal - log.target_normal >= 0 ? '+' : '' }}{{ log.output_normal - log.target_normal }}
-                                </td>
                             </tr>
                         </tbody>
                     </table>

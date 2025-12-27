@@ -89,29 +89,24 @@ class ProductionSeeder extends Seeder
             }
         }
 
-        // Create hourly logs (group-level, not per machine)
+        // Create hourly logs (group-level, not per machine) - output only, no targets
         foreach ($dates as $date) {
             foreach ($pmg as $entry) {
                 for ($h = 0; $h < 24; $h++) {
                     $recorded = Carbon::parse(sprintf('%s %02d:00:00', $date, $h), 'Asia/Jakarta');
 
-                    // Generate realistic hourly targets and outputs per machine group
-                    $baseTarget = (int) max(5, round($entry->machine_count * rand(10, 25)));
+                    // Generate realistic outputs per machine group
+                    $baseOutput = (int) max(5, round($entry->machine_count * rand(10, 25)));
 
                     // Generate normal/reject breakdown (90% normal, 10% reject roughly)
-                    $targetQtyNormal = (int) round($baseTarget * 0.9);
-                    $targetQtyReject = max(1, $baseTarget - $targetQtyNormal);
-
-                    $outputQtyNormal = max(0, (int) ($targetQtyNormal * (0.7 + rand(0, 40) / 100)));
-                    $outputQtyReject = max(0, (int) ($targetQtyReject * (0.5 + rand(0, 50) / 100)));
+                    $outputQtyNormal = (int) round($baseOutput * 0.9);
+                    $outputQtyReject = max(1, $baseOutput - $outputQtyNormal);
 
                     HourlyLog::create([
                         'production_machine_group_id' => $entry->production_machine_group_id,
                         'recorded_at' => $recorded,
                         'output_qty_normal' => $outputQtyNormal,
                         'output_qty_reject' => $outputQtyReject,
-                        'target_qty_normal' => $targetQtyNormal,
-                        'target_qty_reject' => $targetQtyReject,
                     ]);
                 }
             }

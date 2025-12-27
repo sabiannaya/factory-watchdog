@@ -42,7 +42,7 @@ function removeGradeType(type: string): void {
             <button
                 type="button"
                 @click="addGradeType"
-                class="btn"
+                class="hover:cursor-pointer btn"
             >
                 Add
             </button>

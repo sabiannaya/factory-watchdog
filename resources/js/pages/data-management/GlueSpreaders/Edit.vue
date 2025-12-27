@@ -181,7 +181,7 @@ const confirmSubmit = () => {
           </div>
 
           <div class="mt-4 flex justify-end">
-            <button class="btn" :disabled="submitting" @click="handleSubmit">Save</button>
+            <button class="hover:cursor-pointer btn" :disabled="submitting" @click="handleSubmit">Save</button>
           </div>
         </div>
       </div>

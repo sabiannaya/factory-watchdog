@@ -418,15 +418,6 @@ router.on('finish', () => (loading.value = false));
                                 <th class="px-3 py-2 text-sm font-medium">Total Qty</th>
                                 <th class="px-3 py-2 text-sm font-medium">Qty Normal</th>
                                 <th class="px-3 py-2 text-sm font-medium">Qty Reject</th>
-                                <!-- <th class="px-3 py-2 text-sm font-medium">Total Target</th> -->
-                                <th class="px-3 py-2 text-sm font-medium">Target Normal</th>
-                                <th class="px-3 py-2 text-sm font-medium">Target Reject</th>
-                                <th class="px-3 py-2 text-sm font-medium">
-                                    <div class="relative inline-flex items-center" @mouseenter="showVarianceTooltip" @mouseleave="hideVarianceTooltip">
-                                        <span class="mr-1">Variance</span>
-                                        <Info ref="varianceIconRef" class="size-4 text-muted-foreground cursor-pointer" aria-hidden="true" />
-                                    </div>
-                                </th>
                                 <th class="px-3 py-2 text-sm font-medium">Actions</th>
                             </tr>
                         </thead>
@@ -446,16 +437,6 @@ router.on('finish', () => (loading.value = false));
                                 <td class="px-3 py-2 text-sm font-semibold">{{ (row.output_qty_normal ?? 0) + (row.output_qty_reject ?? 0) }}</td>
                                 <td class="px-3 py-2 text-sm">{{ row.output_qty_normal !== null ? row.output_qty_normal : '-' }}</td>
                                 <td class="px-3 py-2 text-sm">{{ row.output_qty_reject !== null ? row.output_qty_reject : '-' }}</td>
-                                <!-- <td class="px-3 py-2 text-sm">{{ (row.target_qty_normal ?? 0) + (row.target_qty_reject ?? 0) }}</td> -->
-                                <td class="px-3 py-2 text-sm">{{ row.target_qty_normal !== undefined ? row.target_qty_normal : '-' }}</td>
-                                <td class="px-3 py-2 text-sm">{{ row.target_qty_reject !== undefined ? row.target_qty_reject : '-' }}</td>
-                                <td
-                                    class="px-3 py-2 text-sm"
-                                    :class="(((row.output_qty_normal ?? 0) - (row.target_qty_normal ?? 0)) + ((row.target_qty_reject ?? 0) - (row.output_qty_reject ?? 0))) >= 0 ? 'text-emerald-600' : 'text-red-600'"
-                                >
-                                    {{ (((row.output_qty_normal ?? 0) - (row.target_qty_normal ?? 0)) + ((row.target_qty_reject ?? 0) - (row.output_qty_reject ?? 0))) >= 0 ? '+' : '' }}
-                                    {{ ((row.output_qty_normal ?? 0) - (row.target_qty_normal ?? 0)) + ((row.target_qty_reject ?? 0) - (row.output_qty_reject ?? 0)) }}
-                                </td>
                                 <td class="px-3 py-2 text-sm">
                                     <div class="flex items-center gap-4">
                                         <IconActionButton :icon="Eye" label="Detail" color="blue" :onClick="() => goDetail(row.hourly_log_id)" />
@@ -465,7 +446,7 @@ router.on('finish', () => (loading.value = false));
                                 </td>
                             </tr>
                             <tr v-if="dataSource.length === 0">
-                                <td colspan="12" class="px-3 py-8 text-center text-sm text-muted-foreground">
+                                <td colspan="8" class="px-3 py-8 text-center text-sm text-muted-foreground">
                                     No hourly inputs recorded for this date. Click "Record Input" to add one.
                                 </td>
                             </tr>
@@ -474,12 +455,12 @@ router.on('finish', () => (loading.value = false));
                 </div>
 
                 <div class="mt-4 flex items-center justify-end gap-2">
-                    <button class="btn" :disabled="(paginationMeta.current_page <= 1) || loading" @click="goPrev">Previous</button>
+                    <button class="hover:cursor-pointer btn" :disabled="(paginationMeta.current_page <= 1) || loading" @click="goPrev">Previous</button>
 
                     <template v-for="item in pagesList" :key="typeof item === 'number' ? `p-${item}` : `e-${Math.random()}`">
                         <button
                             v-if="typeof item === 'number'"
-                            class="btn"
+                            class="hover:cursor-pointer btn"
                             :class="{ 'opacity-90 ring-2 ring-offset-2 ring-black/10': item === paginationMeta.current_page }"
                             :disabled="item === paginationMeta.current_page || loading"
                             @click="() => goPage(Number(item))"
@@ -489,7 +470,7 @@ router.on('finish', () => (loading.value = false));
                         <span v-else class="px-3 text-sm text-muted-foreground">{{ item }}</span>
                     </template>
 
-                    <button class="btn" :disabled="(paginationMeta.current_page >= paginationMeta.last_page) || loading" @click="goNext">Next</button>
+                    <button class="hover:cursor-pointer btn" :disabled="(paginationMeta.current_page >= paginationMeta.last_page) || loading" @click="goNext">Next</button>
                 </div>
             </div>
         </div>

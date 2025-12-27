@@ -16,7 +16,7 @@ import {
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid, Clock, BarChart2, Layers, Wrench, PlusCircle, ClipboardList, Users, Shield } from 'lucide-vue-next';
+import { BookOpen, Folder, LayoutGrid, Clock, BarChart2, Layers, Wrench, PlusCircle, ClipboardList, Users, Shield, Calendar } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 import { computed } from 'vue';
 
@@ -26,13 +26,28 @@ const isSuper = computed(() => {
     return (page.props.auth as any)?.user?.is_super === true;
 });
 
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-];
+const canAccessGlueSpreaders = computed(() => {
+    const user = (page.props.auth as any)?.user;
+    return isSuper.value || user?.can_access_glue_spreaders === true;
+});
+
+const canAccessWarehouse = computed(() => {
+    const user = (page.props.auth as any)?.user;
+    return isSuper.value || user?.can_access_warehouse === true;
+});
+
+const mainNavItems = computed<NavItem[]>(() => {
+    if (!isSuper.value) return [];
+    return [
+        {
+            title: 'Dashboard',
+            href: dashboard(),
+            icon: LayoutGrid,
+        },
+    ];
+});
+
+const homeLink = computed(() => isSuper.value ? dashboard() : '/input');
 
 const footerNavItems: NavItem[] = [];
 </script>
@@ -43,7 +58,7 @@ const footerNavItems: NavItem[] = [];
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
-                        <Link :href="dashboard()">
+                        <Link :href="homeLink">
                             <AppLogo />
                         </Link>
                     </SidebarMenuButton>
@@ -109,11 +124,20 @@ const footerNavItems: NavItem[] = [];
                         </SidebarMenuButton>
                     </SidebarMenuItem>
 
-                    <SidebarMenuItem>
+                    <SidebarMenuItem v-if="canAccessGlueSpreaders">
                         <SidebarMenuButton as-child :tooltip="'Glue Spreaders'">
                             <Link href="/data-management/glue-spreaders">
                                 <Wrench />
                                 <span>Glue Spreaders</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+
+                    <SidebarMenuItem v-if="canAccessWarehouse">
+                        <SidebarMenuButton as-child :tooltip="'Warehouse'">
+                            <Link href="/data-management/warehouses">
+                                <Wrench />
+                                <span>Warehouse</span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -150,6 +174,8 @@ const footerNavItems: NavItem[] = [];
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
+
+                    
                 </SidebarMenu>
             </SidebarGroup>
 
@@ -171,6 +197,15 @@ const footerNavItems: NavItem[] = [];
                             <Link href="/summary/productions">
                                 <Layers />
                                 <span>Productions</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    
+                    <SidebarMenuItem>
+                        <SidebarMenuButton as-child :tooltip="'Daily Summary'">
+                            <Link href="/summary/daily">
+                                <Calendar />
+                                <span>Daily Summary</span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

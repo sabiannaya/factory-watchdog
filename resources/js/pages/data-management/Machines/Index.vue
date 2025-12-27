@@ -104,7 +104,7 @@ router.on('finish', () => (loading.value = false));
                     <h2 class="text-2xl font-semibold">Machine</h2>
                     <p class="text-sm text-muted-foreground">Manage machine groups</p>
                 </div>
-                <button class="btn" @click="router.get('/data-management/machine/create')">
+                <button class="hover:cursor-pointer btn" @click="router.get('/data-management/machine/create')">
                     Create Machine Group
                 </button>
             </div>
@@ -156,9 +156,9 @@ router.on('finish', () => (loading.value = false));
                 </div>
 
                 <div class="mt-4 flex items-center justify-end gap-2">
-                    <button class="btn" :disabled="!props.machineGroups?.prev_cursor || loading"
+                    <button class="hover:cursor-pointer btn" :disabled="!props.machineGroups?.prev_cursor || loading"
                         @click="goPrev">Previous</button>
-                    <button class="btn" :disabled="!props.machineGroups?.next_cursor || loading"
+                    <button class="hover:cursor-pointer btn" :disabled="!props.machineGroups?.next_cursor || loading"
                         @click="goNext">Next</button>
                 </div>
             </div>

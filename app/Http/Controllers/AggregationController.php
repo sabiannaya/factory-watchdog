@@ -6,6 +6,7 @@ use App\Exports\GroupLogsExport;
 use App\Exports\MachineGroupsExport;
 use App\Exports\ProductionLogsExport;
 use App\Exports\ProductionsExport;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -48,10 +49,7 @@ class AggregationController extends Controller
                 'pmg.machine_count',
                 DB::raw('COALESCE(SUM(hl.output_qty_normal), 0) as total_output_qty_normal'),
                 DB::raw('COALESCE(SUM(hl.output_qty_reject), 0) as total_output_qty_reject'),
-                DB::raw('COALESCE(SUM(hl.target_qty_normal), 0) as total_target_qty_normal'),
-                DB::raw('COALESCE(SUM(hl.target_qty_reject), 0) as total_target_qty_reject'),
                 DB::raw('COALESCE(SUM(hl.output_qty_normal), 0) + COALESCE(SUM(hl.output_qty_reject), 0) as total_output'),
-                DB::raw('COALESCE(SUM(hl.target_qty_normal), 0) + COALESCE(SUM(hl.target_qty_reject), 0) as total_target'),
             ])
             ->leftJoin('productions as p', 'pmg.production_id', '=', 'p.production_id')
             ->leftJoin('machine_groups as mg', 'pmg.machine_group_id', '=', 'mg.machine_group_id')
@@ -73,28 +71,69 @@ class AggregationController extends Controller
             });
         }
 
-        // Whitelist sort columns (allow sorting by the computed variance)
-        $allowed = ['total_output', 'total_target', 'variance', 'machine_count', 'production_name', 'machine_group_name'];
+        // Whitelist sort columns
+        $allowed = ['total_output', 'machine_count', 'production_name', 'machine_group_name'];
         if (! in_array($sort, $allowed, true)) {
             $sort = 'total_output';
         }
 
-        // apply sort (handle computed columns separately)
-        if (in_array($sort, ['total_output', 'total_target', 'machine_count'])) {
+        // Apply sort
+        if (in_array($sort, ['total_output', 'machine_count'])) {
             $query->orderBy(DB::raw($sort), $direction);
-        } elseif ($sort === 'variance') {
-            $query->orderBy(DB::raw('((COALESCE(SUM(hl.output_qty_normal), 0) + COALESCE(SUM(hl.output_qty_reject), 0)) - (COALESCE(SUM(hl.target_qty_normal), 0) + COALESCE(SUM(hl.target_qty_reject), 0)))'), $direction);
         } else {
             $query->orderBy($sort, $direction);
         }
 
         $p = $query->paginate($perPage);
 
-        $data = collect($p->items())->map(function ($r) {
+        // Prepare date range for targets
+        $fromDate = $dateFrom ? Carbon::parse($dateFrom)->toDateString() : Carbon::now('Asia/Jakarta')->toDateString();
+        $toDate = $dateTo ? Carbon::parse($dateTo)->toDateString() : Carbon::now('Asia/Jakarta')->toDateString();
+        $days = Carbon::parse($fromDate)->diffInDays(Carbon::parse($toDate)) + 1;
+
+        $items = $p->items();
+        $pmgIds = array_map(fn ($i) => $i->production_machine_group_id, $items);
+
+        // Fetch default_targets for these pmgs
+        $defaults = DB::table('production_machine_groups')
+            ->whereIn('production_machine_group_id', $pmgIds)
+            ->pluck('default_targets', 'production_machine_group_id')
+            ->toArray();
+
+        $data = collect($items)->map(function ($r) use ($fromDate, $toDate, $days, $defaults) {
             $totalOutput = (int) $r->total_output_qty_normal + (int) $r->total_output_qty_reject;
-            $totalTarget = (int) $r->total_target_qty_normal + (int) $r->total_target_qty_reject;
-            $varianceNormal = (int) $r->total_output_qty_normal - (int) $r->total_target_qty_normal;
-            $varianceReject = (int) $r->total_target_qty_reject - (int) $r->total_output_qty_reject;
+
+            // Sum daily target values for this PMG across the date range
+            $targetNormalSum = (int) DB::table('daily_target_values')
+                ->where('production_machine_group_id', $r->production_machine_group_id)
+                ->whereBetween('date', [$fromDate, $toDate])
+                ->where('field_name', 'qty_normal')
+                ->sum('target_value');
+
+            $targetRejectSum = (int) DB::table('daily_target_values')
+                ->where('production_machine_group_id', $r->production_machine_group_id)
+                ->whereBetween('date', [$fromDate, $toDate])
+                ->where('field_name', 'qty_reject')
+                ->sum('target_value');
+
+            // Fallback to defaults if daily overrides missing
+            if ($targetNormalSum === 0) {
+                $d = $defaults[$r->production_machine_group_id] ?? null;
+                $arr = is_string($d) ? json_decode($d, true) : ($d ?? []);
+                $perDay = $arr['qty_normal'] ?? $arr['qty'] ?? 0;
+                $targetNormalSum = (int) $perDay * $days;
+            }
+            if ($targetRejectSum === 0) {
+                $d = $defaults[$r->production_machine_group_id] ?? null;
+                $arr = is_string($d) ? json_decode($d, true) : ($d ?? []);
+                $perDay = $arr['qty_reject'] ?? 0;
+                $targetRejectSum = (int) $perDay * $days;
+            }
+
+            $totalTarget = $targetNormalSum + $targetRejectSum;
+
+            // Contextual variance: (Qty Normal - Target Normal) + (Target Reject - Qty Reject)
+            $variance = ((int) $r->total_output_qty_normal - $targetNormalSum) + ($targetRejectSum - (int) $r->total_output_qty_reject);
 
             return [
                 'production_machine_group_id' => $r->production_machine_group_id,
@@ -105,11 +144,11 @@ class AggregationController extends Controller
                 'machine_count' => (int) $r->machine_count,
                 'total_output_qty_normal' => (int) $r->total_output_qty_normal,
                 'total_output_qty_reject' => (int) $r->total_output_qty_reject,
-                'total_target_qty_normal' => (int) $r->total_target_qty_normal,
-                'total_target_qty_reject' => (int) $r->total_target_qty_reject,
                 'total_output' => $totalOutput,
+                'total_target_qty_normal' => $targetNormalSum,
+                'total_target_qty_reject' => $targetRejectSum,
                 'total_target' => $totalTarget,
-                'variance' => $varianceNormal + $varianceReject,
+                'variance' => $variance,
             ];
         })->all();
 
@@ -148,10 +187,7 @@ class AggregationController extends Controller
                 'p.production_name',
                 DB::raw('COALESCE(SUM(hl.output_qty_normal), 0) as total_output_qty_normal'),
                 DB::raw('COALESCE(SUM(hl.output_qty_reject), 0) as total_output_qty_reject'),
-                DB::raw('COALESCE(SUM(hl.target_qty_normal), 0) as total_target_qty_normal'),
-                DB::raw('COALESCE(SUM(hl.target_qty_reject), 0) as total_target_qty_reject'),
                 DB::raw('COALESCE(SUM(hl.output_qty_normal), 0) + COALESCE(SUM(hl.output_qty_reject), 0) as total_output'),
-                DB::raw('COALESCE(SUM(hl.target_qty_normal), 0) + COALESCE(SUM(hl.target_qty_reject), 0) as total_target'),
                 DB::raw('COUNT(DISTINCT pmg.production_machine_group_id) as group_count'),
             ])
             ->leftJoin('production_machine_groups as pmg', 'p.production_id', '=', 'pmg.production_id')
@@ -170,26 +206,80 @@ class AggregationController extends Controller
             $query->where('p.production_name', 'like', "%{$q}%");
         }
 
-        $allowed = ['total_output', 'total_target', 'variance', 'group_count', 'production_name'];
+        $allowed = ['total_output', 'group_count', 'production_name'];
         if (! in_array($sort, $allowed, true)) {
             $sort = 'total_output';
         }
 
-        if (in_array($sort, ['total_output', 'total_target', 'group_count'])) {
+        if (in_array($sort, ['total_output', 'group_count'])) {
             $query->orderBy(DB::raw($sort), $direction);
-        } elseif ($sort === 'variance') {
-            $query->orderBy(DB::raw('((COALESCE(SUM(hl.output_qty_normal), 0) + COALESCE(SUM(hl.output_qty_reject), 0)) - (COALESCE(SUM(hl.target_qty_normal), 0) + COALESCE(SUM(hl.target_qty_reject), 0)))'), $direction);
         } else {
             $query->orderBy($sort, $direction);
         }
 
         $p = $query->paginate($perPage);
 
-        $data = collect($p->items())->map(function ($r) {
+        // Prepare date range and day count
+        $fromDate = $dateFrom ? Carbon::parse($dateFrom)->toDateString() : Carbon::now('Asia/Jakarta')->toDateString();
+        $toDate = $dateTo ? Carbon::parse($dateTo)->toDateString() : Carbon::now('Asia/Jakarta')->toDateString();
+        $days = Carbon::parse($fromDate)->diffInDays(Carbon::parse($toDate)) + 1;
+
+        $items = $p->items();
+        $productionIds = array_map(fn ($i) => $i->production_id, $items);
+
+        // Fetch summed daily targets grouped by production
+        if (! empty($productionIds)) {
+            $targetRows = DB::table('production_machine_groups as pmg')
+                ->leftJoin('daily_target_values as dtv', function ($join) use ($fromDate, $toDate) {
+                    $join->on('pmg.production_machine_group_id', '=', 'dtv.production_machine_group_id')
+                        ->whereBetween('dtv.date', [$fromDate, $toDate]);
+                })
+                ->whereIn('pmg.production_id', $productionIds)
+                    ->selectRaw('pmg.production_id, SUM(CASE WHEN dtv.field_name = \'qty_normal\' THEN dtv.target_value ELSE 0 END) as total_target_qty_normal, SUM(CASE WHEN dtv.field_name = \'qty_reject\' THEN dtv.target_value ELSE 0 END) as total_target_qty_reject')
+                ->groupBy('pmg.production_id')
+                ->get()
+                ->keyBy('production_id')
+                ->toArray();
+        } else {
+            $targetRows = [];
+        }
+
+        // Fetch defaults per production (sum defaults across pmgs)
+        $defaultsPerProduction = DB::table('production_machine_groups')
+            ->whereIn('production_id', $productionIds)
+            ->get(['production_id', 'default_targets'])
+            ->groupBy('production_id')
+            ->mapWithKeys(function ($group, $prodId) {
+                $sumNormal = 0;
+                $sumReject = 0;
+                foreach ($group as $row) {
+                    $d = is_string($row->default_targets) ? json_decode($row->default_targets, true) : ($row->default_targets ?? []);
+                    $sumNormal += (int) ($d['qty_normal'] ?? $d['qty'] ?? 0);
+                    $sumReject += (int) ($d['qty_reject'] ?? 0);
+                }
+
+                return [$prodId => ['per_day_normal' => $sumNormal, 'per_day_reject' => $sumReject]];
+            })->toArray();
+
+        $data = collect($items)->map(function ($r) use ($targetRows, $defaultsPerProduction, $days) {
             $totalOutput = (int) $r->total_output_qty_normal + (int) $r->total_output_qty_reject;
-            $totalTarget = (int) $r->total_target_qty_normal + (int) $r->total_target_qty_reject;
-            $varianceNormal = (int) $r->total_output_qty_normal - (int) $r->total_target_qty_normal;
-            $varianceReject = (int) $r->total_target_qty_reject - (int) $r->total_output_qty_reject;
+
+            $prodId = $r->production_id;
+            $targetNormal = isset($targetRows[$prodId]) ? (int) $targetRows[$prodId]->total_target_qty_normal : 0;
+            $targetReject = isset($targetRows[$prodId]) ? (int) $targetRows[$prodId]->total_target_qty_reject : 0;
+
+            if ($targetNormal === 0) {
+                $perDay = $defaultsPerProduction[$prodId]['per_day_normal'] ?? 0;
+                $targetNormal = (int) $perDay * $days;
+            }
+            if ($targetReject === 0) {
+                $perDay = $defaultsPerProduction[$prodId]['per_day_reject'] ?? 0;
+                $targetReject = (int) $perDay * $days;
+            }
+
+            $totalTarget = $targetNormal + $targetReject;
+
+            $variance = ((int) $r->total_output_qty_normal - $targetNormal) + ($targetReject - (int) $r->total_output_qty_reject);
 
             return [
                 'production_id' => $r->production_id,
@@ -197,11 +287,11 @@ class AggregationController extends Controller
                 'group_count' => (int) $r->group_count,
                 'total_output_qty_normal' => (int) $r->total_output_qty_normal,
                 'total_output_qty_reject' => (int) $r->total_output_qty_reject,
-                'total_target_qty_normal' => (int) $r->total_target_qty_normal,
-                'total_target_qty_reject' => (int) $r->total_target_qty_reject,
                 'total_output' => $totalOutput,
+                'total_target_qty_normal' => $targetNormal,
+                'total_target_qty_reject' => $targetReject,
                 'total_target' => $totalTarget,
-                'variance' => $varianceNormal + $varianceReject,
+                'variance' => $variance,
             ];
         })->all();
 
@@ -244,10 +334,7 @@ class AggregationController extends Controller
                 'mg.name as machine_group_name',
                 DB::raw('SUM(hl.output_qty_normal) as total_output_qty_normal'),
                 DB::raw('SUM(hl.output_qty_reject) as total_output_qty_reject'),
-                DB::raw('SUM(hl.target_qty_normal) as total_target_qty_normal'),
-                DB::raw('SUM(hl.target_qty_reject) as total_target_qty_reject'),
                 DB::raw('(SUM(hl.output_qty_normal) + SUM(hl.output_qty_reject)) as total_output'),
-                DB::raw('(SUM(hl.target_qty_normal) + SUM(hl.target_qty_reject)) as total_target'),
             ])
             ->leftJoin('production_machine_groups as pmg', 'hl.production_machine_group_id', '=', 'pmg.production_machine_group_id')
             ->leftJoin('productions as p', 'pmg.production_id', '=', 'p.production_id')
@@ -268,15 +355,13 @@ class AggregationController extends Controller
             });
         }
 
-        $allowed = ['recorded_hour', 'total_output', 'total_target', 'variance', 'production_name', 'machine_group_name'];
+        $allowed = ['recorded_hour', 'total_output', 'production_name', 'machine_group_name'];
         if (! in_array($sort, $allowed, true)) {
             $sort = 'recorded_hour';
         }
 
-        if (in_array($sort, ['total_output', 'total_target'])) {
+        if (in_array($sort, ['total_output'])) {
             $query->orderBy(DB::raw($sort), $direction);
-        } elseif ($sort === 'variance') {
-            $query->orderBy(DB::raw('((SUM(hl.output_qty_normal) + SUM(hl.output_qty_reject)) - (SUM(hl.target_qty_normal) + SUM(hl.target_qty_reject)))'), $direction);
         } else {
             $query->orderBy($sort, $direction);
         }
@@ -285,9 +370,6 @@ class AggregationController extends Controller
 
         $data = collect($p->items())->map(function ($r) {
             $totalOutput = (int) $r->total_output_qty_normal + (int) $r->total_output_qty_reject;
-            $totalTarget = (int) $r->total_target_qty_normal + (int) $r->total_target_qty_reject;
-            $varianceNormal = (int) $r->total_output_qty_normal - (int) $r->total_target_qty_normal;
-            $varianceReject = (int) $r->total_target_qty_reject - (int) $r->total_output_qty_reject;
 
             return [
                 'recorded_hour' => $r->recorded_hour,
@@ -298,11 +380,7 @@ class AggregationController extends Controller
                 'machine_group_name' => $this->sentenceCase($r->machine_group_name),
                 'total_output_qty_normal' => (int) $r->total_output_qty_normal,
                 'total_output_qty_reject' => (int) $r->total_output_qty_reject,
-                'total_target_qty_normal' => (int) $r->total_target_qty_normal,
-                'total_target_qty_reject' => (int) $r->total_target_qty_reject,
                 'total_output' => $totalOutput,
-                'total_target' => $totalTarget,
-                'variance' => $varianceNormal + $varianceReject,
             ];
         })->all();
 
@@ -342,10 +420,7 @@ class AggregationController extends Controller
                 'p.production_name',
                 DB::raw('SUM(hl.output_qty_normal) as total_output_qty_normal'),
                 DB::raw('SUM(hl.output_qty_reject) as total_output_qty_reject'),
-                DB::raw('SUM(hl.target_qty_normal) as total_target_qty_normal'),
-                DB::raw('SUM(hl.target_qty_reject) as total_target_qty_reject'),
                 DB::raw('(SUM(hl.output_qty_normal) + SUM(hl.output_qty_reject)) as total_output'),
-                DB::raw('(SUM(hl.target_qty_normal) + SUM(hl.target_qty_reject)) as total_target'),
             ])
             ->leftJoin('production_machine_groups as pmg', 'hl.production_machine_group_id', '=', 'pmg.production_machine_group_id')
             ->leftJoin('productions as p', 'pmg.production_id', '=', 'p.production_id')
@@ -362,15 +437,13 @@ class AggregationController extends Controller
             $query->where('p.production_name', 'like', "%{$q}%");
         }
 
-        $allowed = ['recorded_hour', 'total_output', 'total_target', 'variance', 'production_name'];
+        $allowed = ['recorded_hour', 'total_output', 'production_name'];
         if (! in_array($sort, $allowed, true)) {
             $sort = 'recorded_hour';
         }
 
-        if (in_array($sort, ['total_output', 'total_target'])) {
+        if (in_array($sort, ['total_output'])) {
             $query->orderBy(DB::raw($sort), $direction);
-        } elseif ($sort === 'variance') {
-            $query->orderBy(DB::raw('((SUM(hl.output_qty_normal) + SUM(hl.output_qty_reject)) - (SUM(hl.target_qty_normal) + SUM(hl.target_qty_reject)))'), $direction);
         } else {
             $query->orderBy($sort, $direction);
         }
@@ -379,9 +452,6 @@ class AggregationController extends Controller
 
         $data = collect($p->items())->map(function ($r) {
             $totalOutput = (int) $r->total_output_qty_normal + (int) $r->total_output_qty_reject;
-            $totalTarget = (int) $r->total_target_qty_normal + (int) $r->total_target_qty_reject;
-            $varianceNormal = (int) $r->total_output_qty_normal - (int) $r->total_target_qty_normal;
-            $varianceReject = (int) $r->total_target_qty_reject - (int) $r->total_output_qty_reject;
 
             return [
                 'recorded_hour' => $r->recorded_hour,
@@ -389,11 +459,7 @@ class AggregationController extends Controller
                 'production_name' => $r->production_name,
                 'total_output_qty_normal' => (int) $r->total_output_qty_normal,
                 'total_output_qty_reject' => (int) $r->total_output_qty_reject,
-                'total_target_qty_normal' => (int) $r->total_target_qty_normal,
-                'total_target_qty_reject' => (int) $r->total_target_qty_reject,
                 'total_output' => $totalOutput,
-                'total_target' => $totalTarget,
-                'variance' => $varianceNormal + $varianceReject,
             ];
         })->all();
 
@@ -423,8 +489,9 @@ class AggregationController extends Controller
         $dateFrom = $request->input('date_from', now('Asia/Jakarta')->toDateString());
         $dateTo = $request->input('date_to', now('Asia/Jakarta')->toDateString());
 
-        $sql = '
+        $sql = "
             SELECT
+                pmg.production_machine_group_id,
                 pmg.production_id,
                 p.production_name,
                 pmg.machine_group_id,
@@ -432,17 +499,20 @@ class AggregationController extends Controller
                 COUNT(DISTINCT pmg.production_machine_group_id) AS machine_count,
                 COALESCE(SUM(hl.output_qty_normal), 0) AS total_output_qty_normal,
                 COALESCE(SUM(hl.output_qty_reject), 0) AS total_output_qty_reject,
-                COALESCE(SUM(hl.target_qty_normal), 0) AS total_target_qty_normal,
-                COALESCE(SUM(hl.target_qty_reject), 0) AS total_target_qty_reject
+                COALESCE(SUM(CASE WHEN dtv.field_name = 'qty_normal' THEN dtv.target_value ELSE 0 END), 0) AS total_target_qty_normal,
+                COALESCE(SUM(CASE WHEN dtv.field_name = 'qty_reject' THEN dtv.target_value ELSE 0 END), 0) AS total_target_qty_reject
             FROM production_machine_groups pmg
             LEFT JOIN machine_groups mg ON mg.machine_group_id = pmg.machine_group_id
             LEFT JOIN productions p ON p.production_id = pmg.production_id
             LEFT JOIN hourly_logs hl
                 ON hl.production_machine_group_id = pmg.production_machine_group_id
                 AND DATE(hl.recorded_at) BETWEEN ? AND ?
-        ';
+            LEFT JOIN daily_target_values dtv
+                ON dtv.production_machine_group_id = pmg.production_machine_group_id
+                AND dtv.date BETWEEN ? AND ?
+        ";
 
-        $params = [$dateFrom, $dateTo];
+        $params = [$dateFrom, $dateTo, $dateFrom, $dateTo];
 
         if ($q !== '') {
             $sql .= ' WHERE (p.production_name LIKE ? OR mg.name LIKE ?)';
@@ -456,11 +526,41 @@ class AggregationController extends Controller
 
         $rows = DB::select($sql, $params);
 
-        $data = collect($rows)->map(function ($r) {
+        // compute days
+        $fromDate = $dateFrom ? Carbon::parse($dateFrom)->toDateString() : Carbon::now('Asia/Jakarta')->toDateString();
+        $toDate = $dateTo ? Carbon::parse($dateTo)->toDateString() : Carbon::now('Asia/Jakarta')->toDateString();
+        $days = Carbon::parse($fromDate)->diffInDays(Carbon::parse($toDate)) + 1;
+
+        // fetch defaults map for fallback
+        $pmgIds = array_map(fn ($r) => $r->machine_group_id, $rows);
+        $defaults = DB::table('production_machine_groups')
+            ->whereIn('production_machine_group_id', array_map(function ($r) {
+                return $r->production_machine_group_id;
+            }, $rows))
+            ->pluck('default_targets', 'production_machine_group_id')
+            ->toArray();
+
+        $data = collect($rows)->map(function ($r) use ($days, $defaults) {
             $totalOutput = (int) $r->total_output_qty_normal + (int) $r->total_output_qty_reject;
-            $totalTarget = (int) $r->total_target_qty_normal + (int) $r->total_target_qty_reject;
-            $varianceNormal = (int) $r->total_output_qty_normal - (int) $r->total_target_qty_normal;
-            $varianceReject = (int) $r->total_target_qty_reject - (int) $r->total_output_qty_reject;
+
+            $targetNormal = (int) $r->total_target_qty_normal;
+            $targetReject = (int) $r->total_target_qty_reject;
+
+            if ($targetNormal === 0 || $targetReject === 0) {
+                $d = $defaults[$r->production_machine_group_id] ?? null;
+                $arr = is_string($d) ? json_decode($d, true) : ($d ?? []);
+                if ($targetNormal === 0) {
+                    $perDay = $arr['qty_normal'] ?? $arr['qty'] ?? 0;
+                    $targetNormal = (int) $perDay * $days;
+                }
+                if ($targetReject === 0) {
+                    $perDay = $arr['qty_reject'] ?? 0;
+                    $targetReject = (int) $perDay * $days;
+                }
+            }
+
+            $totalTarget = $targetNormal + $targetReject;
+            $variance = ($totalOutput - $totalTarget);
 
             return [
                 'production_name' => $this->sentenceCase($r->production_name),
@@ -468,7 +568,9 @@ class AggregationController extends Controller
                 'machine_count' => (int) $r->machine_count,
                 'total_output' => $totalOutput,
                 'total_target' => $totalTarget,
-                'variance' => $varianceNormal + $varianceReject,
+                'total_target_qty_normal' => $targetNormal,
+                'total_target_qty_reject' => $targetReject,
+                'variance' => $variance,
             ];
         });
 
@@ -486,23 +588,26 @@ class AggregationController extends Controller
         $dateFrom = $request->input('date_from', now('Asia/Jakarta')->toDateString());
         $dateTo = $request->input('date_to', now('Asia/Jakarta')->toDateString());
 
-        $sql = '
+        $sql = "
             SELECT
                 pmg.production_id,
                 p.production_name,
                 COUNT(DISTINCT pmg.machine_group_id) AS group_count,
                 COALESCE(SUM(hl.output_qty_normal), 0) AS total_output_qty_normal,
                 COALESCE(SUM(hl.output_qty_reject), 0) AS total_output_qty_reject,
-                COALESCE(SUM(hl.target_qty_normal), 0) AS total_target_qty_normal,
-                COALESCE(SUM(hl.target_qty_reject), 0) AS total_target_qty_reject
+                COALESCE(SUM(CASE WHEN dtv.field_name = 'qty_normal' THEN dtv.target_value ELSE 0 END), 0) AS total_target_qty_normal,
+                COALESCE(SUM(CASE WHEN dtv.field_name = 'qty_reject' THEN dtv.target_value ELSE 0 END), 0) AS total_target_qty_reject
             FROM production_machine_groups pmg
             LEFT JOIN productions p ON p.production_id = pmg.production_id
             LEFT JOIN hourly_logs hl
                 ON hl.production_machine_group_id = pmg.production_machine_group_id
                 AND DATE(hl.recorded_at) BETWEEN ? AND ?
-        ';
+            LEFT JOIN daily_target_values dtv
+                ON dtv.production_machine_group_id = pmg.production_machine_group_id
+                AND dtv.date BETWEEN ? AND ?
+        ";
 
-        $params = [$dateFrom, $dateTo];
+        $params = [$dateFrom, $dateTo, $dateFrom, $dateTo];
 
         if ($q !== '') {
             $sql .= ' WHERE p.production_name LIKE ?';
@@ -514,18 +619,53 @@ class AggregationController extends Controller
 
         $rows = DB::select($sql, $params);
 
-        $data = collect($rows)->map(function ($r) {
+        $fromDate = $dateFrom ? Carbon::parse($dateFrom)->toDateString() : Carbon::now('Asia/Jakarta')->toDateString();
+        $toDate = $dateTo ? Carbon::parse($dateTo)->toDateString() : Carbon::now('Asia/Jakarta')->toDateString();
+        $days = Carbon::parse($fromDate)->diffInDays(Carbon::parse($toDate)) + 1;
+
+        // fetch defaults per production
+        $prodDefaults = DB::table('production_machine_groups')
+            ->whereIn('production_id', array_map(fn ($r) => $r->production_id, $rows))
+            ->get(['production_id', 'default_targets'])
+            ->groupBy('production_id')
+            ->mapWithKeys(function ($group, $prodId) {
+                $sumNormal = 0;
+                $sumReject = 0;
+                foreach ($group as $row) {
+                    $d = is_string($row->default_targets) ? json_decode($row->default_targets, true) : ($row->default_targets ?? []);
+                    $sumNormal += (int) ($d['qty_normal'] ?? $d['qty'] ?? 0);
+                    $sumReject += (int) ($d['qty_reject'] ?? 0);
+                }
+
+                return [$prodId => ['per_day_normal' => $sumNormal, 'per_day_reject' => $sumReject]];
+            })->toArray();
+
+        $data = collect($rows)->map(function ($r) use ($days, $prodDefaults) {
             $totalOutput = (int) $r->total_output_qty_normal + (int) $r->total_output_qty_reject;
-            $totalTarget = (int) $r->total_target_qty_normal + (int) $r->total_target_qty_reject;
-            $varianceNormal = (int) $r->total_output_qty_normal - (int) $r->total_target_qty_normal;
-            $varianceReject = (int) $r->total_target_qty_reject - (int) $r->total_output_qty_reject;
+
+            $targetNormal = (int) $r->total_target_qty_normal;
+            $targetReject = (int) $r->total_target_qty_reject;
+
+            if ($targetNormal === 0) {
+                $perDay = $prodDefaults[$r->production_id]['per_day_normal'] ?? 0;
+                $targetNormal = (int) $perDay * $days;
+            }
+            if ($targetReject === 0) {
+                $perDay = $prodDefaults[$r->production_id]['per_day_reject'] ?? 0;
+                $targetReject = (int) $perDay * $days;
+            }
+
+            $totalTarget = $targetNormal + $targetReject;
+            $variance = ($totalOutput - $totalTarget);
 
             return [
                 'production_name' => $this->sentenceCase($r->production_name),
                 'group_count' => (int) $r->group_count,
                 'total_output' => $totalOutput,
                 'total_target' => $totalTarget,
-                'variance' => $varianceNormal + $varianceReject,
+                'total_target_qty_normal' => $targetNormal,
+                'total_target_qty_reject' => $targetReject,
+                'variance' => $variance,
             ];
         });
 
@@ -551,9 +691,7 @@ class AggregationController extends Controller
                 pmg.machine_group_id,
                 mg.name AS machine_group_name,
                 COALESCE(SUM(hl.output_qty_normal), 0) AS total_output_qty_normal,
-                COALESCE(SUM(hl.output_qty_reject), 0) AS total_output_qty_reject,
-                COALESCE(SUM(hl.target_qty_normal), 0) AS total_target_qty_normal,
-                COALESCE(SUM(hl.target_qty_reject), 0) AS total_target_qty_reject
+                COALESCE(SUM(hl.output_qty_reject), 0) AS total_output_qty_reject
             FROM hourly_logs hl
             INNER JOIN production_machine_groups pmg
                 ON pmg.production_machine_group_id = hl.production_machine_group_id
@@ -579,17 +717,12 @@ class AggregationController extends Controller
 
         $data = collect($rows)->map(function ($r) {
             $totalOutput = (int) $r->total_output_qty_normal + (int) $r->total_output_qty_reject;
-            $totalTarget = (int) $r->total_target_qty_normal + (int) $r->total_target_qty_reject;
-            $varianceNormal = (int) $r->total_output_qty_normal - (int) $r->total_target_qty_normal;
-            $varianceReject = (int) $r->total_target_qty_reject - (int) $r->total_output_qty_reject;
 
             return [
                 'hour' => \Carbon\Carbon::parse($r->hour_recorded)->format('Y-m-d H:00'),
                 'production_name' => $this->sentenceCase($r->production_name),
                 'machine_group_name' => $this->sentenceCase($r->machine_group_name),
                 'total_output' => $totalOutput,
-                'total_target' => $totalTarget,
-                'variance' => $varianceNormal + $varianceReject,
             ];
         });
 
@@ -613,9 +746,7 @@ class AggregationController extends Controller
                 pmg.production_id,
                 p.production_name,
                 COALESCE(SUM(hl.output_qty_normal), 0) AS total_output_qty_normal,
-                COALESCE(SUM(hl.output_qty_reject), 0) AS total_output_qty_reject,
-                COALESCE(SUM(hl.target_qty_normal), 0) AS total_target_qty_normal,
-                COALESCE(SUM(hl.target_qty_reject), 0) AS total_target_qty_reject
+                COALESCE(SUM(hl.output_qty_reject), 0) AS total_output_qty_reject
             FROM hourly_logs hl
             INNER JOIN production_machine_groups pmg
                 ON pmg.production_machine_group_id = hl.production_machine_group_id
@@ -636,17 +767,10 @@ class AggregationController extends Controller
         $rows = DB::select($sql, $params);
 
         $data = collect($rows)->map(function ($r) {
-            $totalOutput = (int) $r->total_output_qty_normal + (int) $r->total_output_qty_reject;
-            $totalTarget = (int) $r->total_target_qty_normal + (int) $r->total_target_qty_reject;
-            $varianceNormal = (int) $r->total_output_qty_normal - (int) $r->total_target_qty_normal;
-            $varianceReject = (int) $r->total_target_qty_reject - (int) $r->total_output_qty_reject;
-
             return [
                 'hour' => \Carbon\Carbon::parse($r->hour_recorded)->format('Y-m-d H:00'),
                 'production_name' => $this->sentenceCase($r->production_name),
-                'total_output' => $totalOutput,
-                'total_target' => $totalTarget,
-                'variance' => $varianceNormal + $varianceReject,
+                'total_output' => (int) $r->total_output_qty_normal + (int) $r->total_output_qty_reject,
             ];
         });
 

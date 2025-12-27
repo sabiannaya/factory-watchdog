@@ -47,6 +47,9 @@ export interface ProductItem {
     qty: number;
     notes?: string | null;
     created_at?: string | null;
+    created_by?: string | null;
+    updated_at?: string | null;
+    modified_by?: string | null;
 }
 
 export interface ProductsPageProps {

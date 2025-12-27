@@ -12,7 +12,6 @@ export interface InputField {
 }
 
 export const AVAILABLE_FIELDS: InputField[] = [
-    { value: 'qty', label: 'Quantity (Qty)' },
     { value: 'qty_normal', label: 'Quantity Normal' },
     { value: 'qty_reject', label: 'Quantity Reject' },
     { value: 'grades', label: 'Grades (Multiple)' },
@@ -21,8 +20,24 @@ export const AVAILABLE_FIELDS: InputField[] = [
     { value: 'keterangan', label: 'Description (Keterangan)' },
 ];
 
+const DEFAULT_FIELDS = ['qty_normal', 'qty_reject'];
+
+function normalizeFields(fields?: string[]): string[] {
+    const normalized = (fields || []).filter((field) => field !== 'qty');
+
+    if (!normalized.includes('qty_normal')) {
+        normalized.push('qty_normal');
+    }
+
+    if (!normalized.includes('qty_reject')) {
+        normalized.push('qty_reject');
+    }
+
+    return normalized;
+}
+
 export function useInputConfig(initialConfig?: InputConfig) {
-    const selectedFields = ref<string[]>(initialConfig?.fields || ['qty']);
+    const selectedFields = ref<string[]>(normalizeFields(initialConfig?.fields || DEFAULT_FIELDS));
     const gradeTypes = ref<string[]>(initialConfig?.grade_types || []);
     const newGradeType = ref('');
 
@@ -58,20 +73,19 @@ export function useInputConfig(initialConfig?: InputConfig) {
     }
 
     function determineType(fields: string[]): string {
-        if (fields.length === 1 && fields[0] === 'qty') {
-            return 'qty_only';
-        }
-        if (fields.includes('qty_normal') && fields.includes('qty_reject')) {
+        const normalized = normalizeFields(fields);
+
+        if (normalized.includes('qty_normal') && normalized.includes('qty_reject')) {
             return 'normal_reject';
         }
-        if (fields.includes('grades')) {
+        if (normalized.includes('grades')) {
             return 'grades';
         }
-        if (fields.includes('grade') && fields.includes('qty')) {
-            return 'grade_qty';
+        if (normalized.includes('grade') && normalized.includes('qty_normal')) {
+            return 'grade_qty_normal';
         }
-        if (fields.includes('qty') && fields.includes('ukuran')) {
-            return 'qty_ukuran';
+        if (normalized.includes('qty_normal') && normalized.includes('ukuran')) {
+            return 'qty_normal_ukuran';
         }
         return 'custom';
     }
@@ -85,7 +99,7 @@ export function useInputConfig(initialConfig?: InputConfig) {
     }
 
     function reset(config?: InputConfig): void {
-        selectedFields.value = config?.fields || ['qty'];
+        selectedFields.value = normalizeFields(config?.fields || DEFAULT_FIELDS);
         gradeTypes.value = config?.grade_types || [];
         newGradeType.value = '';
     }

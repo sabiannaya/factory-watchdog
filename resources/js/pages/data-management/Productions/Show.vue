@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
 import IconActionButton from '@/components/ui/IconActionButton.vue';
-import { Edit2, Trash2 } from 'lucide-vue-next';
+import { Edit2, Trash2, ArrowLeft } from 'lucide-vue-next';
 import { type BreadcrumbItem } from '@/types';
 import TargetDisplay from '@/components/production/TargetDisplay.vue';
 import InputConfigDisplay from '@/components/machine-group/InputConfigDisplay.vue';
@@ -40,6 +40,8 @@ const goEdit = () => {
     router.get(`/data-management/production/${props.production.production_id}/edit`);
 };
 
+const goBack = () => router.get('/data-management/production');
+
 const confirmDelete = () => {
     if (!confirm('Are you sure you want to delete this production?')) {
         return;
@@ -66,6 +68,7 @@ const confirmDelete = () => {
                 </div>
 
                 <div class="flex items-center gap-2">
+                    <IconActionButton :icon="ArrowLeft" label="Back" color="blue" :onClick="goBack" />
                     <IconActionButton :icon="Edit2" label="Edit" color="amber" :onClick="goEdit" />
                     <IconActionButton :icon="Trash2" label="Delete" color="red" :onClick="confirmDelete" />
                 </div>

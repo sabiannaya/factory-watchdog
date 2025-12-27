@@ -24,6 +24,8 @@ class User extends Authenticatable
         'email',
         'password',
         'role_id',
+        'can_access_glue_spreaders',
+        'can_access_warehouse',
     ];
 
     /**
@@ -49,6 +51,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
+            'can_access_glue_spreaders' => 'boolean',
+            'can_access_warehouse' => 'boolean',
         ];
     }
 
@@ -62,6 +66,12 @@ class User extends Authenticatable
     public function productions(): BelongsToMany
     {
         return $this->belongsToMany(Production::class, 'user_productions', 'user_id', 'production_id')
+            ->withTimestamps();
+    }
+
+    public function glueSpreaders(): BelongsToMany
+    {
+        return $this->belongsToMany(GlueSpreader::class, 'user_glue_spreaders', 'user_id', 'glue_spreader_id')
             ->withTimestamps();
     }
 
@@ -133,5 +143,31 @@ class User extends Authenticatable
     public function canDelete(): bool
     {
         return $this->isSuper();
+    }
+
+    /**
+     * Check if user can access glue spreaders.
+     * Super users can always access. Staff need the flag enabled.
+     */
+    public function canAccessGlueSpreaders(): bool
+    {
+        if ($this->isSuper()) {
+            return true;
+        }
+
+        return (bool) $this->can_access_glue_spreaders;
+    }
+
+    /**
+     * Check if user can access warehouse records.
+     * Super users can always access. Staff need the flag enabled.
+     */
+    public function canAccessWarehouse(): bool
+    {
+        if ($this->isSuper()) {
+            return true;
+        }
+
+        return $this->can_access_warehouse;
     }
 }

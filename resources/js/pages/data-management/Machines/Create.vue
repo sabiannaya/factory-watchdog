@@ -62,7 +62,7 @@ function submit(): void {
                     />
 
                     <div class="flex items-center gap-3">
-                        <button type="submit" class="btn" :disabled="form.processing">
+                        <button type="submit" class="hover:cursor-pointer btn" :disabled="form.processing">
                             {{ form.processing ? 'Creating...' : 'Create Machine Group' }}
                         </button>
                         <button

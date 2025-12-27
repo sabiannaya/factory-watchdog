@@ -4,12 +4,36 @@ import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import { logout } from '@/routes';
+import { router } from '@inertiajs/vue3';
+import { ref } from 'vue';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { send } from '@/routes/verification';
 import { Form, Head } from '@inertiajs/vue3';
 
 defineProps<{
     status?: string;
 }>();
+const showLogoutDialog = ref(false);
+
+const handleLogout = (event?: Event) => {
+    if (event) event.preventDefault();
+    showLogoutDialog.value = true;
+};
+
+const confirmLogout = () => {
+    router.post(logout.url());
+    showLogoutDialog.value = false;
+};
+
 </script>
 
 <template>
@@ -41,9 +65,27 @@ defineProps<{
                 :href="logout()"
                 as="button"
                 class="mx-auto block text-sm"
+                @click.prevent="handleLogout"
             >
                 Log out
             </TextLink>
         </Form>
+
+        <AlertDialog :open="showLogoutDialog" @update:open="(v) => showLogoutDialog = v">
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Log out</AlertDialogTitle>
+                </AlertDialogHeader>
+
+                <AlertDialogDescription>
+                    Are you sure you want to log out?
+                </AlertDialogDescription>
+
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction @click="confirmLogout">Log out</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     </AuthLayout>
 </template>

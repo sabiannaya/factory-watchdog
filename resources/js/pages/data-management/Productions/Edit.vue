@@ -52,6 +52,27 @@ const targetDate = ref<string | null>(null);
 const attachedGroups = ref<Record<number, AttachedGroup>>({});
 const clientErrors = ref<Record<number, Record<string, string[]>>>({});
 
+function normalizeTargets(targets?: Record<string, number | null>, legacy?: number | null): Record<string, number | null> {
+    const normalized: Record<string, number | null> = {};
+
+    if (targets) {
+        Object.entries(targets).forEach(([key, value]) => {
+            if (key === 'qty') {
+                normalized.qty_normal = value;
+                return;
+            }
+
+            normalized[key] = value;
+        });
+    }
+
+    if (legacy !== undefined && legacy !== null && normalized.qty_normal === undefined) {
+        normalized.qty_normal = legacy;
+    }
+
+    return normalized;
+}
+
 // Initialize attached groups from props
 onMounted(() => {
     const groups: Record<number, AttachedGroup> = {};
@@ -61,12 +82,8 @@ onMounted(() => {
             groups[ag.machine_group_id] = {
                 machine_group_id: ag.machine_group_id,
                 machine_count: ag.machine_count,
-                // Backward compatibility: if only legacy default_target exists, map it to qty
-                targets: {
-                    qty: ag.default_target,
-                },
-                // Use per-field defaults if present, otherwise initialize as empty
-                default_targets: ag.default_targets ?? {},
+                targets: normalizeTargets(ag.default_targets, ag.default_target),
+                default_targets: normalizeTargets(ag.default_targets, ag.default_target),
             };
         });
     }
@@ -118,7 +135,11 @@ function submit(): void {
 
     // Populate form fields
     form.target_date = targetDate.value;
-    form.machine_groups = Object.values(attachedGroups.value);
+    form.machine_groups = Object.values(attachedGroups.value).map(group => ({
+        ...group,
+        targets: normalizeTargets(group.targets),
+        default_targets: normalizeTargets(group.default_targets),
+    }));
 
     form.put(`/data-management/production/${props.production.production_id}`, {
         preserveState: false,
@@ -153,7 +174,7 @@ function submit(): void {
                 />
 
                 <div class="flex items-center gap-3 pt-4">
-                    <button type="submit" class="btn" :disabled="form.processing">
+                    <button type="submit" class="hover:cursor-pointer btn" :disabled="form.processing">
                         {{ form.processing ? 'Saving...' : 'Save Changes' }}
                     </button>
                     <button

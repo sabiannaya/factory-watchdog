@@ -5,10 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class GlueSpreader extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $primaryKey = 'glue_spreader_id';
 
@@ -25,8 +27,10 @@ class GlueSpreader extends Model
         'washes_per_day',
         'glue_loss_kg',
         'notes',
+        'is_active',
         'created_by',
         'modified_by',
+        'deleted_by',
     ];
 
     protected $casts = [
@@ -38,12 +42,14 @@ class GlueSpreader extends Model
         'anti_termite_kg' => 'float',
         'glue_loss_kg' => 'float',
         'washes_per_day' => 'integer',
+        'is_active' => 'boolean',
     ];
 
     protected static function booted()
     {
         static::creating(function ($model) {
             $model->created_by = auth()->id();
+            $model->updated_at = null;
         });
 
         static::updating(function ($model) {
@@ -59,5 +65,16 @@ class GlueSpreader extends Model
     public function modifier(): BelongsTo
     {
         return $this->belongsTo(User::class, 'modified_by');
+    }
+
+    public function deleter(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'deleted_by');
+    }
+
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'user_glue_spreaders', 'glue_spreader_id', 'user_id')
+            ->withTimestamps();
     }
 }

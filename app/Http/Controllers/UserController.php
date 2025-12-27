@@ -109,6 +109,8 @@ class UserController extends Controller
             'role_id' => ['required', 'exists:roles,role_id'],
             'production_ids' => ['nullable', 'array'],
             'production_ids.*' => ['integer', 'exists:productions,production_id'],
+            'can_access_glue_spreaders' => ['boolean'],
+            'can_access_warehouse' => ['boolean'],
         ]);
 
         $user = User::create([
@@ -116,6 +118,8 @@ class UserController extends Controller
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
             'role_id' => $data['role_id'],
+            'can_access_glue_spreaders' => $data['can_access_glue_spreaders'] ?? false,
+            'can_access_warehouse' => $data['can_access_warehouse'] ?? false,
         ]);
 
         // Attach productions if staff role
@@ -171,6 +175,8 @@ class UserController extends Controller
                 'role_id' => $user->role_id,
                 'role_slug' => $user->role?->slug ?? null,
                 'production_ids' => $user->productions->pluck('production_id')->toArray(),
+                'can_access_glue_spreaders' => $user->can_access_glue_spreaders,
+                'can_access_warehouse' => $user->can_access_warehouse,
             ],
             'roles' => $roles,
             'productions' => $productions,
@@ -189,11 +195,15 @@ class UserController extends Controller
             'role_id' => ['required', 'exists:roles,role_id'],
             'production_ids' => ['nullable', 'array'],
             'production_ids.*' => ['integer', 'exists:productions,production_id'],
+            'can_access_glue_spreaders' => ['boolean'],
+            'can_access_warehouse' => ['boolean'],
         ]);
 
         $user->name = $data['name'];
         $user->email = $data['email'];
         $user->role_id = $data['role_id'];
+        $user->can_access_glue_spreaders = $data['can_access_glue_spreaders'] ?? false;
+        $user->can_access_warehouse = $data['can_access_warehouse'] ?? false;
 
         if (! empty($data['password'])) {
             $user->password = Hash::make($data['password']);

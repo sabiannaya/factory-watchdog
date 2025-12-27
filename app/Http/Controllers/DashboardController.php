@@ -17,6 +17,9 @@ class DashboardController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
+        if (! $user->isSuper()) {
+            return redirect('/input');
+        }
         $isStaff = $user->isStaff();
         $accessibleProductionIds = $isStaff ? $user->accessibleProductionIds() : [];
 
@@ -45,9 +48,8 @@ class DashboardController extends Controller
 
         $since7 = Carbon::now('Asia/Jakarta')->subDays(7)->setTimezone('UTC');
         $dailyRows = DB::table('hourly_logs as hl')
-            ->leftJoin('production_machine_groups as pmg', 'hl.production_machine_group_id', '=', 'pmg.production_machine_group_id')
             ->where('hl.recorded_at', '>=', $since7)
-            ->selectRaw("DATE(CONVERT_TZ(hl.recorded_at, '+00:00', '+07:00')) as date, COALESCE(SUM(hl.output_qty_normal), 0) as actual, COALESCE(SUM(hl.target_qty_normal), 0) as target")
+            ->selectRaw("DATE(CONVERT_TZ(hl.recorded_at, '+00:00', '+07:00')) as date, COALESCE(SUM(hl.output_qty_normal), 0) as actual")
             ->groupBy('date')
             ->get()
             ->keyBy('date')
@@ -58,7 +60,6 @@ class DashboardController extends Controller
 
             return [
                 'date' => Carbon::createFromFormat('Y-m-d', $d, 'Asia/Jakarta')->format('m/d'),
-                'target' => (int) ($row->target ?? 0),
                 'actual' => (int) ($row->actual ?? 0),
             ];
         }, $dates);
@@ -66,30 +67,22 @@ class DashboardController extends Controller
         // Today's performance (use qty_normal aggregated)
         $todayStart = Carbon::now('Asia/Jakarta')->startOfDay()->setTimezone('UTC');
         $todayRow = DB::table('hourly_logs as hl')
-            ->selectRaw('COALESCE(SUM(hl.output_qty_normal), 0) as actual, COALESCE(SUM(hl.target_qty_normal), 0) as target')
+            ->selectRaw('COALESCE(SUM(hl.output_qty_normal), 0) as actual')
             ->where('hl.recorded_at', '>=', $todayStart)
             ->first();
 
         $todayActual = $todayRow->actual ?? 0;
-        $todayTargetValue = $todayRow->target ?? 0;
-        $todayPerformance = $todayTargetValue > 0
-            ? round(($todayActual / $todayTargetValue) * 100, 1)
-            : 0;
 
         // Yesterday's performance (use qty_normal aggregated)
         $yesterdayStart = Carbon::now('Asia/Jakarta')->startOfDay()->subDay()->setTimezone('UTC');
         $yesterdayEnd = Carbon::now('Asia/Jakarta')->startOfDay()->setTimezone('UTC');
         $yesterdayRow = DB::table('hourly_logs as hl')
-            ->selectRaw('COALESCE(SUM(hl.output_qty_normal), 0) as actual, COALESCE(SUM(hl.target_qty_normal), 0) as target')
+            ->selectRaw('COALESCE(SUM(hl.output_qty_normal), 0) as actual')
             ->where('hl.recorded_at', '>=', $yesterdayStart)
             ->where('hl.recorded_at', '<', $yesterdayEnd)
             ->first();
 
         $yesterdayActual = $yesterdayRow->actual ?? 0;
-        $yesterdayTargetValue = $yesterdayRow->target ?? 0;
-        $yesterdayPerformance = $yesterdayTargetValue > 0
-            ? round(($yesterdayActual / $yesterdayTargetValue) * 100, 1)
-            : 0;
 
         // Recent hourly logs (last 10) - filtered for staff
         $recentLogsQuery = HourlyLog::with('productionMachineGroup.production', 'productionMachineGroup.machineGroup')
@@ -108,9 +101,7 @@ class DashboardController extends Controller
                 'machine_group' => $log->productionMachineGroup->machineGroup->name ?? '-',
                 'recorded_at' => $log->recorded_at->format('Y-m-d H:00'),
                 'output_normal' => (int) ($log->output_qty_normal ?? 0),
-                'target_normal' => (int) ($log->target_qty_normal ?? 0),
                 'output_reject' => (int) ($log->output_qty_reject ?? 0),
-                'target_reject' => (int) ($log->target_qty_reject ?? 0),
             ])
             ->toArray();
 
@@ -168,12 +159,8 @@ class DashboardController extends Controller
                 'total_productions' => $totalProductions,
                 'active_productions' => $activeProductions,
                 'total_machine_groups' => $totalMachineGroups,
-                'today_performance' => $todayPerformance,
                 'today_actual' => $todayActual,
-                'today_target' => $todayTargetValue,
-                'yesterday_performance' => $yesterdayPerformance,
                 'yesterday_actual' => $yesterdayActual,
-                'yesterday_target' => $yesterdayTargetValue,
             ],
             'dailyTrends' => $dailyTrends,
             'recentLogs' => $recentLogs,
@@ -190,6 +177,9 @@ class DashboardController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
+        if (! $user->isSuper()) {
+            abort(403);
+        }
         $isStaff = $user->isStaff();
         $accessibleProductionIds = $isStaff ? $user->accessibleProductionIds() : [];
 

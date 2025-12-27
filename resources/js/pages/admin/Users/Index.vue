@@ -32,6 +32,7 @@ interface UserRow {
     role_name: string;
     role_slug: string | null;
     productions_count: number;
+    glue_spreaders_count: number;
     created_at: string;
 }
 
@@ -214,6 +215,7 @@ const getRoleBadgeClass = (slug: string | null) => {
                                 <th class="px-4 py-3 text-sm font-medium">Email</th>
                                 <th class="px-4 py-3 text-sm font-medium">Role</th>
                                 <th class="px-4 py-3 text-sm font-medium">Assigned Productions</th>
+                                <th class="px-4 py-3 text-sm font-medium">Glue Spreaders</th>
                                 <th class="px-4 py-3 text-sm font-medium">Created</th>
                                 <th class="px-4 py-3 text-sm font-medium">Actions</th>
                             </tr>
@@ -235,6 +237,10 @@ const getRoleBadgeClass = (slug: string | null) => {
                                     <span v-if="user.role_slug === 'super'" class="text-muted-foreground italic">All</span>
                                     <span v-else>{{ user.productions_count }} production(s)</span>
                                 </td>
+                                <td class="px-4 py-3 text-sm">
+                                    <span v-if="user.role_slug === 'super'" class="text-muted-foreground italic">All</span>
+                                    <span v-else class="text-muted-foreground italic">All</span>
+                                </td>
                                 <td class="px-4 py-3 text-sm text-muted-foreground">{{ user.created_at }}</td>
                                 <td class="px-4 py-3 text-sm">
                                     <div class="flex items-center gap-3">
@@ -245,7 +251,7 @@ const getRoleBadgeClass = (slug: string | null) => {
                                 </td>
                             </tr>
                             <tr v-if="dataSource.length === 0">
-                                <td colspan="6" class="px-4 py-8 text-center text-sm text-muted-foreground">
+                                <td colspan="7" class="px-4 py-8 text-center text-sm text-muted-foreground">
                                     No users found. Click "Add User" to create one.
                                 </td>
                             </tr>

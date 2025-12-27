@@ -42,6 +42,23 @@ const targetDate = ref<string | null>(null);
 const attachedGroups = ref<Record<number, AttachedGroup>>({});
 const clientErrors = ref<Record<number, Record<string, string[]>>>({});
 
+function normalizeTargets(targets?: Record<string, number | null>): Record<string, number | null> {
+    const normalized: Record<string, number | null> = {};
+
+    if (targets) {
+        Object.entries(targets).forEach(([key, value]) => {
+            if (key === 'qty') {
+                normalized.qty_normal = value;
+                return;
+            }
+
+            normalized[key] = value;
+        });
+    }
+
+    return normalized;
+}
+
 // Watch for changes and sync to form
 watch([targetDate, attachedGroups], () => {
     form.target_date = targetDate.value;
@@ -69,7 +86,8 @@ function validateClient(): boolean {
         }
 
         if (targetDate.value) {
-            const hasTargets = Object.values(group.targets).some(v => v !== null && v !== undefined);
+            const normalizedTargets = normalizeTargets(group.targets);
+            const hasTargets = Object.values(normalizedTargets).some(v => v !== null && v !== undefined);
             if (!hasTargets) {
                 errors.targets = ['At least one target is required when target date is set'];
                 ok = false;
@@ -89,6 +107,18 @@ function submit(): void {
         return;
     }
 
+    // Normalize any legacy qty targets to qty_normal/qty_reject before submit
+    const normalizedGroups: Record<number, AttachedGroup> = {};
+    Object.entries(attachedGroups.value).forEach(([key, group]) => {
+        normalizedGroups[Number(key)] = {
+            ...group,
+            targets: normalizeTargets(group.targets),
+            default_targets: normalizeTargets(group.default_targets),
+        };
+    });
+
+    form.machine_groups = normalizedGroups;
+
     form.post('/data-management/production', {
         preserveState: false,
         onSuccess: () => {
@@ -105,7 +135,7 @@ function submit(): void {
             <div>
                 <h1 class="text-3xl font-bold">Create Production</h1>
                 <p class="text-muted-foreground dark:text-muted-foreground">
-                    Create a new production and attach machine groups with targets eee
+                    Create a new production and attach machine groups with targets
                 </p>
             </div>
 
@@ -122,7 +152,7 @@ function submit(): void {
                 />
 
                 <div class="flex items-center gap-3 pt-4">
-                        <button type="submit" class="btn" :disabled="form.processing">
+                        <button type="submit" class="hover:cursor-pointer btn" :disabled="form.processing">
                         {{ form.processing ? 'Creating...' : 'Create Production' }}
                     </button>
                     <button

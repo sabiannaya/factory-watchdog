@@ -34,18 +34,11 @@ class HourlyInputExport implements FromCollection, WithHeadings, WithMapping, Wi
             'Total Qty',
             'Qty Normal',
             'Qty Reject',
-            'Total Target',
-            'Target Normal',
-            'Target Reject',
-            'Variance',
         ];
     }
 
     public function map($row): array
     {
-        $varianceNormal = ($row['output_qty_normal'] ?? 0) - ($row['target_qty_normal'] ?? 0);
-        $varianceReject = ($row['target_qty_reject'] ?? 0) - ($row['output_qty_reject'] ?? 0);
-
         return [
             $row['hour'] ?? '-',
             $row['production_name'] ?? '-',
@@ -53,10 +46,6 @@ class HourlyInputExport implements FromCollection, WithHeadings, WithMapping, Wi
             ($row['output_qty_normal'] ?? 0) + ($row['output_qty_reject'] ?? 0),
             $row['output_qty_normal'] ?? 0,
             $row['output_qty_reject'] ?? 0,
-            ($row['target_qty_normal'] ?? 0) + ($row['target_qty_reject'] ?? 0),
-            $row['target_qty_normal'] ?? 0,
-            $row['target_qty_reject'] ?? 0,
-            $varianceNormal + $varianceReject,
         ];
     }
 

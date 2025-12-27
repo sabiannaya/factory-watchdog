@@ -15,9 +15,33 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const inputFields = computed(() => {
-    const fields = props.inputConfig?.fields ?? ['qty'];
+    let fields = props.inputConfig?.fields ?? [];
+
+    if (!fields.length) {
+        fields = ['qty_normal', 'qty_reject'];
+    }
+
+    if (fields.includes('qty')) {
+        fields = fields.filter((f) => f !== 'qty');
+        if (!fields.includes('qty_normal')) fields.push('qty_normal');
+        if (!fields.includes('qty_reject')) fields.push('qty_reject');
+    }
+
     return fields.filter((f: string) => f !== 'keterangan');
 });
+
+function normalizeTargetMap(map: Record<string, number | null> = {}): Record<string, number | null> {
+    const normalized: Record<string, number | null> = { ...map };
+
+    if (normalized.qty !== undefined) {
+        if (normalized.qty_normal === undefined) {
+            normalized.qty_normal = normalized.qty;
+        }
+        delete normalized.qty;
+    }
+
+    return normalized;
+}
 
 const gradeTypes = computed(() => props.inputConfig?.grade_types || []);
 
@@ -27,9 +51,11 @@ function getFieldLabel(field: string): string {
 
 function getTargetValue(field: string, date?: string): number | null {
     if (date && (props.perDateTargets ?? {})[date]) {
-        return props.perDateTargets![date][field] ?? null;
+        const normalizedPerDate = normalizeTargetMap(props.perDateTargets![date]);
+        return normalizedPerDate[field] ?? null;
     }
-    return (props.defaultTargets ?? {})[field] ?? null;
+    const normalizedDefaults = normalizeTargetMap(props.defaultTargets ?? {});
+    return normalizedDefaults[field] ?? null;
 }
 </script>
 

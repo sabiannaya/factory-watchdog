@@ -322,7 +322,7 @@ function getFieldLabel(fieldName: string): string {
                 >
                     <button 
                         type="submit" 
-                        class="btn"
+                        class="hover:cursor-pointer btn"
                         :disabled="form.processing"
                     >
                         {{ form.processing ? 'Saving...' : 'Save Daily Targets' }}

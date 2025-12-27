@@ -63,6 +63,15 @@ watch(search, () => {
 
 router.on('start', () => (loading.value = true));
 router.on('finish', () => (loading.value = false));
+
+const formatDate = (val?: string | null) => {
+  if (!val) return '-';
+  const [datePart, timePart] = val.split(' ');
+  if (!datePart) return val;
+  const [year, month, day] = datePart.split('-');
+  const [hour = '00', minute = '00'] = (timePart ?? '').split(':');
+  return `${day}/${month}/${year} ${hour}:${minute}`;
+};
 </script>
 
 <template>
@@ -76,7 +85,7 @@ router.on('finish', () => (loading.value = false));
           <h2 class="text-2xl font-semibold">Glue Spreaders</h2>
           <p class="text-sm text-muted-foreground">Manage glue spreader equipment used in production.</p>
         </div>
-        <button class="btn" @click="goCreate">Add Glue Spreader</button>
+        <button class="hover:cursor-pointer btn" @click="goCreate">Add Glue Spreader</button>
       </div>
 
       <div class="mt-4">
@@ -100,6 +109,10 @@ router.on('finish', () => (loading.value = false));
                 <th class="px-3 py-2 text-sm font-medium">Glue (Kg)</th>
                 <th class="px-3 py-2 text-sm font-medium">Hardener (Kg)</th>
                 <th class="px-3 py-2 text-sm font-medium">Viscosity</th>
+                <th class="px-3 py-2 text-sm font-medium">Created At</th>
+                <th class="px-3 py-2 text-sm font-medium">Created By</th>
+                <th class="px-3 py-2 text-sm font-medium">Updated At</th>
+                <th class="px-3 py-2 text-sm font-medium">Modified By</th>
                 <th class="px-3 py-2 text-sm font-medium">Actions</th>
               </tr>
             </thead>
@@ -111,6 +124,10 @@ router.on('finish', () => (loading.value = false));
                 <td class="px-3 py-2 text-sm">{{ row.glue_kg ?? '-' }}</td>
                 <td class="px-3 py-2 text-sm">{{ row.hardener_kg ?? '-' }}</td>
                 <td class="px-3 py-2 text-sm">{{ row.viscosity ?? '-' }}</td>
+                <td class="px-3 py-2 text-sm">{{ formatDate(row.created_at) }}</td>
+                <td class="px-3 py-2 text-sm">{{ row.created_by ?? '-' }}</td>
+                <td class="px-3 py-2 text-sm">{{ formatDate(row.updated_at) }}</td>
+                <td class="px-3 py-2 text-sm">{{ row.modified_by ?? '-' }}</td>
                 <td class="px-3 py-2 text-sm">
                   <div class="flex items-center gap-4">
                     <IconActionButton :icon="Eye" label="Show" color="blue" :onClick="() => goShow(row.id)" />
@@ -125,9 +142,9 @@ router.on('finish', () => (loading.value = false));
         </div>
 
         <div class="mt-4 flex items-center justify-end gap-2">
-          <button class="btn" :disabled="!props.glueSpreaders?.links?.prev || loading"
+          <button class="hover:cursor-pointer btn" :disabled="!props.glueSpreaders?.links?.prev || loading"
             @click="goPrev">Previous</button>
-          <button class="btn" :disabled="!props.glueSpreaders?.links?.next || loading"
+          <button class="hover:cursor-pointer btn" :disabled="!props.glueSpreaders?.links?.next || loading"
             @click="goNext">Next</button>
         </div>
       </div>

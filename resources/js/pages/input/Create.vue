@@ -457,7 +457,7 @@ const hasDuplicateError = computed(() => {
                 </AlertDialogHeader>
                 <div class="flex justify-end gap-2">
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction @click="confirmSubmit" :disabled="submitting" class="btn">
+                    <AlertDialogAction @click="confirmSubmit" :disabled="submitting" class="hover:cursor-pointer btn">
                         {{ submitting ? 'Saving...' : 'Save Input' }}
                     </AlertDialogAction>
                 </div>
