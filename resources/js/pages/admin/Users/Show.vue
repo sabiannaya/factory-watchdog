@@ -47,7 +47,7 @@ const confirmDelete = () => {
     <Head :title="`User - ${user.name}`" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="p-4 max-w-2xl mx-auto">
+        <div class="p-4">
             <!-- Header -->
             <div class="flex items-center justify-between mb-6">
                 <div>
