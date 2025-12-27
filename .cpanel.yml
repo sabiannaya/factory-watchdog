@@ -5,6 +5,5 @@ deployment:
     - cp -r /home/dusatekc/repositories/mingook/* /home/dusatekc/mingook.dusatek.com/
     - cd /home/dusatekc/mingook.dusatek.com
 
-    # 2. Run Composer using the common 'composer.phar' alias
-    # This usually works when the direct binary path is restricted
-    - ./composer.phar install --no-interaction --optimize-autoloader --no-dev
+    # 2. Run Composer using PHP
+    - php composer.phar install --no-interaction --optimize-autoloader --no-dev
