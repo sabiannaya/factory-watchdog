@@ -7,4 +7,4 @@ deployment:
 
     # 2. Run Composer using the common 'composer.phar' alias
     # This usually works when the direct binary path is restricted
-    - composer.phar install --no-interaction --optimize-autoloader --no-dev
+    - ./composer.phar install --no-interaction --optimize-autoloader --no-dev
