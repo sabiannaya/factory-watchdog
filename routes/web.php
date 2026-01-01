@@ -3,6 +3,7 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HourlyInputController;
 use App\Http\Controllers\HourlyLogController;
+use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\MachineGroupController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductionController;
@@ -18,6 +19,9 @@ Route::get('/', function () {
         'canRegister' => Features::enabled(Features::registration()),
     ]);
 })->name('home');
+
+// Language switching
+Route::post('/language/switch', [LanguageController::class, 'switch'])->name('language.switch');
 
 Route::get('dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
 
@@ -106,6 +110,9 @@ Route::prefix('input')->middleware(['auth', 'verified'])->name('input.')->group(
     Route::post('/check-duplicate', [HourlyInputController::class, 'checkDuplicate'])->name('check-duplicate');
     Route::post('/bulk-delete', [HourlyInputController::class, 'bulkDelete'])->name('bulk-delete');
     Route::get('/export', [HourlyInputController::class, 'export'])->name('export');
+    Route::get('/import/template', [HourlyInputController::class, 'downloadTemplate'])->name('import.template');
+    Route::post('/import/preview', [HourlyInputController::class, 'previewImport'])->name('import.preview');
+    Route::post('/import/execute', [HourlyInputController::class, 'executeImport'])->name('import.execute');
     Route::get('/{hourlyLog}', [HourlyInputController::class, 'show'])->name('show');
     Route::get('/{hourlyLog}/edit', [HourlyInputController::class, 'edit'])->name('edit');
     Route::put('/{hourlyLog}', [HourlyInputController::class, 'update'])->name('update');

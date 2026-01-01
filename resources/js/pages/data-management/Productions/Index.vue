@@ -4,6 +4,7 @@ import { Head, router } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
 import DataTable, { type DataTableColumn } from '@/components/DataTable.vue';
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
+import { useLocalization } from '@/composables/useLocalization';
 import IconActionButton from '@/components/ui/IconActionButton.vue';
 import { Eye, Edit2, Trash2, ChevronDown } from 'lucide-vue-next';
 import {
@@ -13,25 +14,21 @@ import {
     DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Data Management',
-        href: '/data-management/production',
-    },
-    {
-        title: 'Production',
-        href: '/data-management/production',
-    },
-];
+const { t } = useLocalization();
+
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+    { title: t('data_management.data_management'), href: '/data-management/production' },
+    { title: t('data_management.production'), href: '/data-management/production' },
+]);
 
 // Define table columns with schema (match `productions` model fields)
-const columns: DataTableColumn[] = [
-    { key: 'production_id', label: 'ID', type: 'number', sortable: true, findable: false },
-    { key: 'production_name', label: 'Production Name', type: 'string', sortable: true, findable: true },
-    { key: 'status', label: 'Status', type: 'string', sortable: true, findable: true },
-    { key: 'created_at', label: 'Created', type: 'date', sortable: true, findable: true },
-    { key: 'actions', label: 'Actions', type: 'string', sortable: false, findable: false },
-];
+const columns = computed<DataTableColumn[]>(() => [
+    { key: 'production_id', label: t('data_management.id'), type: 'number', sortable: true, findable: false },
+    { key: 'production_name', label: t('data_management.production_name'), type: 'string', sortable: true, findable: true },
+    { key: 'status', label: t('data_management.status'), type: 'string', sortable: true, findable: true },
+    { key: 'created_at', label: t('data_management.created'), type: 'date', sortable: true, findable: true },
+    { key: 'actions', label: t('data_management.actions'), type: 'string', sortable: false, findable: false },
+]);
 
 // Accept backend productions and meta; fall back to an empty list for local dev
 const props = defineProps<{ 
@@ -54,10 +51,10 @@ const loading = ref(false);
 const status = ref(props.meta?.status ?? '');
 
 const statusLabel = computed(() => {
-    if (!status.value) return 'All';
-    if (status.value === 'active') return 'Active';
-    if (status.value === 'inactive') return 'Inactive';
-    return 'All';
+    if (!status.value) return t('data_management.all');
+    if (status.value === 'active') return t('data_management.active');
+    if (status.value === 'inactive') return t('data_management.inactive');
+    return t('data_management.all');
 });
 
 const selectStatus = (s: string) => { status.value = s; onStatusChange(); };
@@ -118,28 +115,28 @@ onBeforeUnmount(() => {
 
 const confirmDelete = (id: number | string) => {
     // eslint-disable-next-line no-alert
-    if (!window.confirm('Are you sure you want to delete this production?')) return;
+    if (!window.confirm(t('data_management.confirm_delete_production'))) return;
     router.visit(`/data-management/production/${id}`, { method: 'delete', preserveState: false });
 };
 </script>
 
 <template>
-    <Head title="Production" />
+    <Head :title="t('data_management.production')" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="p-4 space-y-4">
             <div class="flex items-center justify-between">
                 <div>
-                    <h2 class="text-2xl font-semibold">Production</h2>
-                    <p class="text-sm text-muted-foreground">Manage production records</p>
+                    <h2 class="text-2xl font-semibold">{{ t('data_management.production') }}</h2>
+                    <p class="text-sm text-muted-foreground">{{ t('data_management.manage_production_records') }}</p>
                 </div>
                 <button class="hover:cursor-pointer btn" @click="router.get('/data-management/production/create')">
-                    Create Production
+                    {{ t('data_management.add_production') }}
                 </button>
             </div>
 
             <div class="flex items-center gap-3 mb-2">
-                <label class="text-sm">Status</label>
+                <label class="text-sm">{{ t('data_management.status') }}</label>
                 <DropdownMenu>
                     <DropdownMenuTrigger :as-child="true">
                         <button type="button" class="appearance-none rounded-md border bg-popover text-popover-foreground px-3 py-2 pr-10 text-sm shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 flex items-center gap-2" :disabled="loading">
@@ -149,13 +146,13 @@ const confirmDelete = (id: number | string) => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent class="min-w-[8rem]">
                         <DropdownMenuItem :as-child="true">
-                            <button class="block w-full text-left px-3 py-2 text-sm" @click="selectStatus('')">All</button>
+                            <button class="block w-full text-left px-3 py-2 text-sm" @click="selectStatus('')">{{ t('data_management.all') }}</button>
                         </DropdownMenuItem>
                         <DropdownMenuItem :as-child="true">
-                            <button class="block w-full text-left px-3 py-2 text-sm" @click="selectStatus('active')">Active</button>
+                            <button class="block w-full text-left px-3 py-2 text-sm" @click="selectStatus('active')">{{ t('data_management.active') }}</button>
                         </DropdownMenuItem>
                         <DropdownMenuItem :as-child="true">
-                            <button class="block w-full text-left px-3 py-2 text-sm" @click="selectStatus('inactive')">Inactive</button>
+                            <button class="block w-full text-left px-3 py-2 text-sm" @click="selectStatus('inactive')">{{ t('data_management.inactive') }}</button>
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
@@ -187,8 +184,8 @@ const confirmDelete = (id: number | string) => {
             </DataTable>
 
             <div class="mt-4 flex items-center justify-end gap-2">
-                <button class="hover:cursor-pointer btn" :disabled="!props.productions?.prev_cursor" @click="goPrev">Previous</button>
-                <button class="hover:cursor-pointer btn" :disabled="!props.productions?.next_cursor" @click="goNext">Next</button>
+                <button class="hover:cursor-pointer btn" :disabled="!props.productions?.prev_cursor" @click="goPrev">{{ t('data_management.previous') }}</button>
+                <button class="hover:cursor-pointer btn" :disabled="!props.productions?.next_cursor" @click="goNext">{{ t('data_management.next') }}</button>
             </div>
         </div>
     </AppLayout>

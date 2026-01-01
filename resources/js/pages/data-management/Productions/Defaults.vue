@@ -4,17 +4,15 @@ import { Head, router, Link } from '@inertiajs/vue3';
 import IconActionButton from '@/components/ui/IconActionButton.vue';
 import { Edit2 } from 'lucide-vue-next';
 import { type BreadcrumbItem } from '@/types';
+import { computed } from 'vue';
+import { useLocalization } from '@/composables/useLocalization';
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Data Management',
-        href: '/data-management/production',
-    },
-    {
-        title: 'Production Defaults',
-        href: '/data-management/productions/defaults',
-    },
-];
+const { t } = useLocalization();
+
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+    { title: t('data_management.data_management'), href: '/data-management/production' },
+    { title: t('data_management.production_defaults'), href: '/data-management/productions/defaults' },
+]);
 
 const props = defineProps<{
     productions: Array<{
@@ -33,12 +31,12 @@ const props = defineProps<{
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbs">
-        <Head title="Production Defaults" />
+        <Head :title="t('data_management.production_defaults')" />
 
         <div class="p-4 space-y-4">
             <div>
-                <h1 class="text-3xl font-bold">Production Defaults Management</h1>
-                <p class="text-gray-600">Define default targets for each numeric parameter per machine group. These defaults will be used in the Targets view and can be overridden daily.</p>
+                <h1 class="text-3xl font-bold">{{ t('data_management.production_defaults_management') }}</h1>
+                <p class="text-gray-600">{{ t('data_management.production_defaults_description') }}</p>
             </div>
 
             <div class="space-y-6">
@@ -49,7 +47,7 @@ const props = defineProps<{
 
                     <div class="p-6">
                         <div v-if="production.machine_groups.length === 0" class="text-center py-8 text-gray-500">
-                            <p>No machine groups assigned to this production</p>
+                            <p>{{ t('data_management.no_machine_groups_assigned') }}</p>
                         </div>
 
                         <div v-else class="space-y-4">
@@ -57,13 +55,13 @@ const props = defineProps<{
                                 <div class="flex justify-between items-start mb-3">
                                     <div>
                                         <h3 class="font-semibold text-lg">{{ mg.name }}</h3>
-                                        <p class="text-sm text-gray-600">Machines: {{ mg.machine_count }}</p>
+                                        <p class="text-sm text-gray-600">{{ t('data_management.machines') }}: {{ mg.machine_count }}</p>
                                     </div>
-                                    <IconActionButton :icon="Edit2" label="Edit Defaults" color="amber" :onClick="() => router.get(`/data-management/productions/${mg.production_machine_group_id}/defaults/edit`)" />
+                                    <IconActionButton :icon="Edit2" :label="t('data_management.edit_defaults')" color="amber" :onClick="() => router.get(`/data-management/productions/${mg.production_machine_group_id}/defaults/edit`)" />
                                 </div>
 
                                 <div class="bg-gray-50 rounded p-3">
-                                    <p class="text-xs font-semibold text-gray-700 mb-2">Input Fields:</p>
+                                    <p class="text-xs font-semibold text-gray-700 mb-2">{{ t('data_management.input_fields') }}:</p>
                                     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                                         <div v-for="field in mg.fields" :key="field" class="bg-white p-2 rounded border border-gray-200">
                                             <p class="text-xs font-medium capitalize mb-1">{{ field }}</p>

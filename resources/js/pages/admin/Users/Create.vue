@@ -21,12 +21,15 @@ import AlertDialogHeader from '@/components/ui/alert-dialog/AlertDialogHeader.vu
 import AlertDialogTitle from '@/components/ui/alert-dialog/AlertDialogTitle.vue';
 import ToastNotifications from '@/components/ToastNotifications.vue';
 import { useToast } from '@/composables/useToast';
+import { useLocalization } from '@/composables/useLocalization';
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Admin', href: '/admin/users' },
-    { title: 'Users', href: '/admin/users' },
-    { title: 'Create', href: '/admin/users/create' },
-];
+const { t } = useLocalization();
+
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+    { title: t('users.admin'), href: '/admin/users' },
+    { title: t('users.users'), href: '/admin/users' },
+    { title: t('users.create'), href: '/admin/users/create' },
+]);
 
 interface Role {
     role_id: number;
@@ -64,9 +67,9 @@ const selectedRole = computed(() => {
 });
 
 const selectedRoleLabel = computed(() => {
-    if (!form.role_id) return 'Select a role';
+    if (!form.role_id) return t('users.select_role');
     const found = props.roles.find(r => r.role_id === Number(form.role_id));
-    return found ? found.name : 'Select a role';
+    return found ? found.name : t('users.select_role');
 });
 
 const selectRole = (id: number | string) => {
@@ -97,11 +100,11 @@ const confirmSubmit = () => {
     form.post('/admin/users', {
         preserveScroll: true,
         onSuccess: () => {
-            success('User created', 'New user has been created');
+            success(t('users.user_created'), t('users.user_created_description'));
             router.get('/admin/users');
         },
         onError: () => {
-            error('Failed to create', 'There was an error creating the user');
+            error(t('users.create_failed'), t('users.create_failed_description'));
         },
         onFinish: () => {
             submitting.value = false;
@@ -125,42 +128,42 @@ const isProductionSelected = (productionId: number) => {
 </script>
 
 <template>
-    <Head title="Create User" />
+    <Head :title="t('users.create_title')" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="p-4">
             <div class="mb-6">
                 <h2 class="text-2xl font-semibold flex items-center gap-2">
                     <UserPlus class="size-6" />
-                    Create New User
+                    {{ t('users.create_title') }}
                 </h2>
-                <p class="text-sm text-muted-foreground">Add a new user to the system</p>
+                <p class="text-sm text-muted-foreground">{{ t('users.create_description') }}</p>
             </div>
 
             <form @submit.prevent="onSubmit" class="space-y-6">
                 <!-- Basic Info -->
                 <div class="rounded-lg border p-4 space-y-4">
-                    <h3 class="font-medium text-lg">Basic Information</h3>
+                    <h3 class="font-medium text-lg">{{ t('users.basic_information') }}</h3>
                     
                     <div class="space-y-2">
-                        <Label for="name">Name</Label>
+                        <Label for="name">{{ t('users.name') }}</Label>
                         <Input
                             id="name"
                             v-model="form.name"
                             type="text"
-                            placeholder="Enter full name"
+                            :placeholder="t('users.name_placeholder')"
                             :class="{ 'border-red-500': form.errors.name }"
                         />
                         <p v-if="form.errors.name" class="text-sm text-red-500">{{ form.errors.name }}</p>
                     </div>
 
                     <div class="space-y-2">
-                        <Label for="email">Email</Label>
+                        <Label for="email">{{ t('users.email') }}</Label>
                         <Input
                             id="email"
                             v-model="form.email"
                             type="email"
-                            placeholder="Enter email address"
+                            :placeholder="t('users.email_placeholder')"
                             :class="{ 'border-red-500': form.errors.email }"
                         />
                         <p v-if="form.errors.email" class="text-sm text-red-500">{{ form.errors.email }}</p>
@@ -169,16 +172,16 @@ const isProductionSelected = (productionId: number) => {
 
                 <!-- Password -->
                 <div class="rounded-lg border p-4 space-y-4">
-                    <h3 class="font-medium text-lg">Password</h3>
+                    <h3 class="font-medium text-lg">{{ t('users.password_section') }}</h3>
                     
                     <div class="space-y-2">
-                        <Label for="password">Password</Label>
+                        <Label for="password">{{ t('users.password_section') }}</Label>
                         <div class="relative">
                             <Input
                                 id="password"
                                 v-model="form.password"
                                 :type="showPassword ? 'text' : 'password'"
-                                placeholder="Enter password"
+                                :placeholder="t('users.password_placeholder')"
                                 class="pr-10"
                                 :class="{ 'border-red-500': form.errors.password }"
                             />
@@ -195,13 +198,13 @@ const isProductionSelected = (productionId: number) => {
                     </div>
 
                     <div class="space-y-2">
-                        <Label for="password_confirmation">Confirm Password</Label>
+                        <Label for="password_confirmation">{{ t('users.confirm_new_password') }}</Label>
                         <div class="relative">
                             <Input
                                 id="password_confirmation"
                                 v-model="form.password_confirmation"
                                 :type="showConfirmPassword ? 'text' : 'password'"
-                                placeholder="Confirm password"
+                                :placeholder="t('users.confirm_password_placeholder')"
                                 class="pr-10"
                             />
                             <button
@@ -220,11 +223,11 @@ const isProductionSelected = (productionId: number) => {
                 <div class="rounded-lg border p-4 space-y-4">
                     <h3 class="font-medium text-lg flex items-center gap-2">
                         <Shield class="size-5" />
-                        Role & Permissions
+                        {{ t('users.role_permissions') }}
                     </h3>
                     
                     <div class="space-y-2">
-                        <Label for="role">Role</Label>
+                        <Label for="role">{{ t('users.role') }}</Label>
                         <DropdownMenu>
                             <DropdownMenuTrigger :as-child="true">
                                 <button type="button" class="input w-full flex items-center justify-between" :class="{ 'border-red-500': form.errors.role_id }">
@@ -234,7 +237,7 @@ const isProductionSelected = (productionId: number) => {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent class="w-[var(--reka-dropdown-menu-trigger-width)] max-w-none">
                                 <DropdownMenuItem :as-child="true">
-                                    <button class="block w-full text-left px-3 py-2 text-sm" @click="selectRole('')">Select a role</button>
+                                    <button class="block w-full text-left px-3 py-2 text-sm" @click="selectRole('')">{{ t('users.select_role') }}</button>
                                 </DropdownMenuItem>
                                 <template v-for="role in roles" :key="role.role_id">
                                     <DropdownMenuItem :as-child="true">
@@ -260,10 +263,10 @@ const isProductionSelected = (productionId: number) => {
                 <div v-if="isStaffRole" class="rounded-lg border p-4 space-y-4">
                     <h3 class="font-medium text-lg flex items-center gap-2">
                         <Users class="size-5" />
-                        Production Assignments
+                        {{ t('users.production_assignments') }}
                     </h3>
                     <p class="text-sm text-muted-foreground">
-                        Select which productions this user can access. Staff can only see and manage data for their assigned productions.
+                        {{ t('users.select_productions') }}
                     </p>
                     
                     <div v-if="productions.length === 0" class="text-sm text-muted-foreground italic">
@@ -294,10 +297,10 @@ const isProductionSelected = (productionId: number) => {
                 <div v-if="isStaffRole" class="rounded-lg border p-4 space-y-4">
                     <h3 class="font-medium text-lg flex items-center gap-2">
                         <Wrench class="size-5" />
-                        Glue Spreader Access
+                        {{ t('users.glue_access') }}
                     </h3>
                     <p class="text-sm text-muted-foreground">
-                        Enable this to allow the staff to see and manage the Glue Spreader menu as a whole.
+                        {{ t('users.glue_access_description') }}
                     </p>
 
                     <label class="flex items-center gap-3 p-3 rounded-md border transition-colors hover:bg-muted/50">
@@ -306,7 +309,7 @@ const isProductionSelected = (productionId: number) => {
                             v-model="form.can_access_glue_spreaders"
                             class="rounded border-gray-300 text-primary focus:ring-primary"
                         />
-                        <span class="text-sm">Can access Glue Spreader menu</span>
+                        <span class="text-sm">{{ t('users.glue_access') }}</span>
                     </label>
                 </div>
 
@@ -314,10 +317,10 @@ const isProductionSelected = (productionId: number) => {
                 <div v-if="isStaffRole" class="rounded-lg border p-4 space-y-4">
                     <h3 class="font-medium text-lg flex items-center gap-2">
                         <Wrench class="size-5" />
-                        Warehouse Access
+                        {{ t('users.warehouse_access') }}
                     </h3>
                     <p class="text-sm text-muted-foreground">
-                        Enable this to allow the staff to see and manage the Warehouse menu as a whole.
+                        {{ t('users.warehouse_access_description') }}
                     </p>
 
                     <label class="flex items-center gap-3 p-3 rounded-md border transition-colors hover:bg-muted/50">
@@ -326,7 +329,7 @@ const isProductionSelected = (productionId: number) => {
                             v-model="form.can_access_warehouse"
                             class="rounded border-gray-300 text-primary focus:ring-primary"
                         />
-                        <span class="text-sm">Can access Warehouse menu</span>
+                        <span class="text-sm">{{ t('users.warehouse_access') }}</span>
                     </label>
                 </div>
 
@@ -337,14 +340,14 @@ const isProductionSelected = (productionId: number) => {
                         class="btn-secondary rounded-md px-4 py-2 transition-all duration-150 hover:opacity-90"
                         @click="router.get('/admin/users')"
                     >
-                        Cancel
+                        {{ t('users.cancel') }}
                     </button>
                     <button
                         type="submit"
                         class="btn rounded-md px-4 py-2 transition-all duration-150 hover:opacity-90 disabled:opacity-50"
                         :disabled="form.processing"
                     >
-                        {{ form.processing ? 'Creating...' : 'Create User' }}
+                        {{ form.processing ? t('users.creating') : t('users.confirm_create') }}
                     </button>
                 </div>
             </form>
@@ -352,9 +355,9 @@ const isProductionSelected = (productionId: number) => {
             <AlertDialog :open="showConfirmDialog" @update:open="showConfirmDialog = $event">
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Confirm Create User</AlertDialogTitle>
+                        <AlertDialogTitle>{{ t('users.confirm_create_title') }}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Are you sure you want to create this user?
+                            {{ t('users.confirm_create_description') }}
                         </AlertDialogDescription>
 
                         <div class="mt-4 border-t pt-3">
@@ -377,8 +380,8 @@ const isProductionSelected = (productionId: number) => {
                     </AlertDialogHeader>
 
                     <div class="flex justify-end gap-2 mt-4">
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction @click="confirmSubmit" :disabled="submitting" class="hover:cursor-pointer btn">Create User</AlertDialogAction>
+                        <AlertDialogCancel>{{ t('users.cancel') }}</AlertDialogCancel>
+                        <AlertDialogAction @click="confirmSubmit" :disabled="submitting" class="hover:cursor-pointer btn">{{ t('users.confirm_create') }}</AlertDialogAction>
                     </div>
                 </AlertDialogContent>
             </AlertDialog>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import IconActionButton from '@/components/ui/IconActionButton.vue';
 import { Edit2, Trash2, ArrowLeft } from 'lucide-vue-next';
 import AlertDialog from '@/components/ui/alert-dialog/AlertDialog.vue';
@@ -13,6 +13,7 @@ import AlertDialogHeader from '@/components/ui/alert-dialog/AlertDialogHeader.vu
 import AlertDialogTitle from '@/components/ui/alert-dialog/AlertDialogTitle.vue';
 import ToastNotifications from '@/components/ToastNotifications.vue';
 import { useToast } from '@/composables/useToast';
+import { useLocalization } from '@/composables/useLocalization';
 
 // Local types
 interface BreadcrumbItem { title: string; href: string }
@@ -20,13 +21,14 @@ interface WarehouseProp { id: number; source?: string | null; quantity?: number 
 
 const props = defineProps<{ warehouse: WarehouseProp }>();
 
+const { t } = useLocalization();
 const { success } = useToast();
 
-const breadcrumbs: BreadcrumbItem[] = [
-  { title: 'Data Management', href: '/data-management/production' },
-  { title: 'Warehouse', href: '/data-management/warehouses' },
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+  { title: t('data_management.data_management'), href: '/data-management/production' },
+  { title: t('data_management.warehouse'), href: '/data-management/warehouses' },
   { title: props.warehouse.source ?? String(props.warehouse.id), href: `/data-management/warehouses/${props.warehouse.id}` },
-];
+]);
 
 const showDeleteDialog = ref(false);
 const deleting = ref(false);

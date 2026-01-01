@@ -8,6 +8,7 @@ import ToastNotifications from '@/components/ToastNotifications.vue';
 import { useToast } from '@/composables/useToast';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import { useLocalization } from '@/composables/useLocalization';
 
 // Local types for this page
 interface BreadcrumbItem { title: string; href: string }
@@ -29,10 +30,12 @@ interface WarehousesPageProps {
   meta?: { q?: string | null; per_page?: number | null };
 }
 
-const breadcrumbs: BreadcrumbItem[] = [
-  { title: 'Data Management', href: '/data-management/production' },
-  { title: 'Warehouse', href: '/data-management/warehouses' },
-];
+const { t } = useLocalization();
+
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+  { title: t('data_management.data_management'), href: '/data-management/production' },
+  { title: t('data_management.warehouse'), href: '/data-management/warehouses' },
+]);
 
 const props = defineProps<WarehousesPageProps>();
 

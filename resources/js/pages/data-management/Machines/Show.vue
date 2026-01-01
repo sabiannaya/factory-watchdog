@@ -2,28 +2,32 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
+import { computed } from 'vue';
 import InputConfigDisplay from '@/components/machine-group/InputConfigDisplay.vue';
 import IconActionButton from '@/components/ui/IconActionButton.vue';
 import { Edit2, Trash2, ArrowLeft } from 'lucide-vue-next';
+import { useLocalization } from '@/composables/useLocalization';
+
+const { t } = useLocalization();
 
 const props = defineProps<{ machineGroup: { machine_group_id: number; name: string; description?: string; total_machines?: number; allocations?: any[] } }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Data Management', href: '/data-management/production' },
-    { title: 'Machine', href: '/data-management/machine' },
-    { title: props.machineGroup?.name ?? 'Detail', href: window.location.pathname },
-];
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+    { title: t('data_management.data_management'), href: '/data-management/production' },
+    { title: t('data_management.machines'), href: '/data-management/machine' },
+    { title: props.machineGroup?.name ?? t('data_management.detail'), href: window.location.pathname },
+]);
 
 const goBack = () => router.get('/data-management/machine');
 const goEdit = () => router.get(`/data-management/machine/${props.machineGroup.machine_group_id}/edit`);
 const confirmDelete = () => {
-    if (!window.confirm('Are you sure you want to delete this machine group?')) return;
+    if (!window.confirm(t('data_management.confirm_delete_machine'))) return;
     router.visit(`/data-management/machine/${props.machineGroup.machine_group_id}`, { method: 'delete', preserveState: false });
 };
 </script>
 
 <template>
-    <Head :title="`Machine — ${props.machineGroup?.name ?? ''}`" />
+    <Head :title="`${t('data_management.machine')} — ${props.machineGroup?.name ?? ''}`" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="p-4">
@@ -32,25 +36,25 @@ const confirmDelete = () => {
                     <div>
                         <h2 class="text-lg font-semibold">{{ props.machineGroup.name }}</h2>
                         <p class="mt-1 text-sm text-muted-foreground">{{ props.machineGroup.description }}</p>
-                        <p class="mt-2 text-sm">Total machines: <strong>{{ props.machineGroup.total_machines ?? 0 }}</strong></p>
+                        <p class="mt-2 text-sm">{{ t('data_management.total_machines') }}: <strong>{{ props.machineGroup.total_machines ?? 0 }}</strong></p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <IconActionButton :icon="ArrowLeft" label="Back" :onClick="goBack" />
-                        <IconActionButton :icon="Edit2" label="Edit" color="amber" :onClick="goEdit" />
-                        <IconActionButton :icon="Trash2" label="Delete" color="red" :onClick="confirmDelete" />
+                        <IconActionButton :icon="ArrowLeft" :label="t('data_management.back')" :onClick="goBack" />
+                        <IconActionButton :icon="Edit2" :label="t('data_management.edit')" color="amber" :onClick="goEdit" />
+                        <IconActionButton :icon="Trash2" :label="t('data_management.delete')" color="red" :onClick="confirmDelete" />
                     </div>
                 </div>
 
                 <InputConfigDisplay :config="props.machineGroup.input_config" />
 
                 <div class="mt-6">
-                    <h3 class="text-sm font-medium">Allocations to Productions</h3>
+                    <h3 class="text-sm font-medium">{{ t('data_management.allocations_to_productions') }}</h3>
                     <div class="mt-2 overflow-x-auto">
                         <table class="w-full table-auto border-collapse">
                             <thead>
                                 <tr class="text-left">
-                                    <th class="px-3 py-2 text-sm font-medium">Production</th>
-                                    <th class="px-3 py-2 text-sm font-medium">Machine Count</th>
+                                    <th class="px-3 py-2 text-sm font-medium">{{ t('data_management.production') }}</th>
+                                    <th class="px-3 py-2 text-sm font-medium">{{ t('data_management.machine_count') }}</th>
                                 </tr>
                             </thead>
                             <tbody>

@@ -1,0 +1,26 @@
+<?php
+
+return [
+    'title' => 'Dashboard',
+    'total_productions' => 'Total Productions',
+    'active_label' => 'active',
+    'machine_groups' => 'Machine Groups',
+    'today_output' => 'Today Output',
+    'vs_yesterday' => 'vs :count yesterday',
+    'daily_output_trend' => 'Daily Output Trend',
+    'last_7_days' => 'Last 7 days',
+    'output_by_machine_group' => 'Output by Machine Group',
+    'normal_distribution' => 'Normal Distribution',
+    'reject_distribution' => 'Reject Distribution',
+    'today_distribution' => 'Today\'s distribution',
+    'weekly_production_output' => 'Weekly Production Output',
+    'by_production_line' => 'By production line',
+    'recent_logs' => 'Recent Logs',
+    'latest_entries' => 'Latest entries',
+    'production' => 'Production',
+    'machine_group' => 'Machine Group',
+    'time' => 'Time',
+    'normal' => 'Normal',
+    'reject' => 'Reject',
+    'no_recent_logs' => 'No recent logs available',
+];

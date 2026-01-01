@@ -3,7 +3,11 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
 import IconActionButton from '@/components/ui/IconActionButton.vue';
 import { type BreadcrumbItem } from '@/types';
+import { computed } from 'vue';
 import { User, Shield, Factory, Calendar, Mail, ArrowLeft, Edit2, Trash2 } from 'lucide-vue-next';
+import { useLocalization } from '@/composables/useLocalization';
+
+const { t } = useLocalization();
 
 interface Production {
     production_id: number;
@@ -25,11 +29,11 @@ const props = defineProps<{
     user: UserData;
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Admin', href: '/admin/users' },
-    { title: 'Users', href: '/admin/users' },
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+    { title: t('users.admin'), href: '/admin/users' },
+    { title: t('users.users'), href: '/admin/users' },
     { title: props.user.name, href: `/admin/users/${props.user.id}` },
-];
+]);
 
 const getRoleBadgeClass = (slug: string | null) => {
     if (slug === 'super') return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
@@ -38,7 +42,7 @@ const getRoleBadgeClass = (slug: string | null) => {
 };
 
 const confirmDelete = () => {
-    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
+    if (!window.confirm(t('users.confirm_delete_permanent'))) return;
     router.delete(`/admin/users/${props.user.id}`);
 };
 </script>
@@ -56,7 +60,7 @@ const confirmDelete = () => {
                         @click="router.get('/admin/users')"
                     >
                         <ArrowLeft class="size-4" />
-                        Back to Users
+                        {{ t('users.back_to_users') }}
                     </button>
                     <h2 class="text-2xl font-semibold flex items-center gap-2">
                         <User class="size-6" />
@@ -64,15 +68,15 @@ const confirmDelete = () => {
                     </h2>
                 </div>
                 <div class="flex items-center gap-2">
-                    <IconActionButton :icon="Edit2" label="Edit" color="amber" :onClick="() => router.get(`/admin/users/${user.id}/edit`)" />
-                    <IconActionButton :icon="Trash2" label="Delete" color="red" :onClick="confirmDelete" />
+                    <IconActionButton :icon="Edit2" :label="t('users.edit')" color="amber" :onClick="() => router.get(`/admin/users/${user.id}/edit`)" />
+                    <IconActionButton :icon="Trash2" :label="t('users.delete')" color="red" :onClick="confirmDelete" />
                 </div>
             </div>
 
             <!-- User Info Card -->
             <div class="rounded-lg border overflow-hidden">
                 <div class="bg-muted/30 px-6 py-4 border-b">
-                    <h3 class="font-medium">User Information</h3>
+                    <h3 class="font-medium">{{ t('users.user_information') }}</h3>
                 </div>
                 
                 <div class="p-6 space-y-4">
@@ -82,7 +86,7 @@ const confirmDelete = () => {
                             <Mail class="size-5 text-muted-foreground" />
                         </div>
                         <div>
-                            <p class="text-sm text-muted-foreground">Email</p>
+                            <p class="text-sm text-muted-foreground">{{ t('users.email') }}</p>
                             <p class="font-medium">{{ user.email }}</p>
                         </div>
                     </div>

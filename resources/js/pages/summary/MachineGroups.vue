@@ -5,11 +5,14 @@ import { type BreadcrumbItem } from '@/types';
 import DataTable from '@/components/DataTable.vue';
 import { ref, computed } from 'vue';
 import { FileDown } from 'lucide-vue-next';
+import { useLocalization } from '@/composables/useLocalization';
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Summary', href: '/summary/machine-groups' },
-    { title: 'Machine Group Summary', href: '/summary/machine-groups' },
-];
+const { t } = useLocalization();
+
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+    { title: t('summary.title'), href: '/summary/machine-groups' },
+    { title: t('summary.machine_groups_title'), href: '/summary/machine-groups' },
+]);
 
 const props = defineProps<{ aggregates?: { data: any[]; next_page?: string | null; prev_page?: string | null }, meta?: any }>();
 const loading = ref(false);
@@ -84,39 +87,39 @@ router.on('finish', () => (loading.value = false));
 </script>
 
 <template>
-    <Head title="Machine Group Aggregates" />
+    <Head :title="t('summary.machine_groups_title')" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="p-4 space-y-4">
             <div class="flex items-center justify-between">
                 <div>
-                    <h2 class="text-2xl font-semibold">Machine Group Aggregates</h2>
-                    <p class="text-sm text-muted-foreground">Aggregated output per machine group (sums across machines)</p>
+                    <h2 class="text-2xl font-semibold">{{ t('summary.machine_groups_title') }}</h2>
+                    <p class="text-sm text-muted-foreground">{{ t('summary.machine_groups_description') }}</p>
                 </div>
                 <button @click="exportToExcel" class="btn-secondary flex items-center gap-2">
                     <FileDown class="size-4" />
-                    Export to Excel
+                    {{ t('app.export') }}
                 </button>
             </div>
 
             <div class="flex items-center gap-3 mb-3">
-                <label class="text-sm">From</label>
+                <label class="text-sm">{{ t('app.from') }}</label>
                 <input type="date" class="input" v-model="dateFrom" :disabled="loading" />
-                <label class="text-sm">To</label>
+                <label class="text-sm">{{ t('app.to') }}</label>
                 <input type="date" class="input" v-model="dateTo" :disabled="loading" />
-                <button class="hover:cursor-pointer btn" @click="onDateFilter" :disabled="loading">Apply</button>
+                <button class="hover:cursor-pointer btn" @click="onDateFilter" :disabled="loading">{{ t('app.apply') }}</button>
             </div>
 
             <DataTable serverMode :data="dataSource" :columns="[
-                { key: 'machine_group_name', label: 'Machine Group', type: 'string', sortable: true, findable: true },
-                { key: 'production_name', label: 'Production', type: 'string', sortable: true, findable: true },
-                { key: 'machine_count', label: 'Machines', type: 'number', sortable: true, findable: false },
-                { key: 'total_output_qty_normal', label: 'Normal Output', type: 'number', sortable: true, findable: false },
-                { key: 'total_output_qty_reject', label: 'Rejected Output', type: 'number', sortable: true, findable: false },
-                { key: 'total_target_qty_normal', label: 'Normal Target', type: 'number', sortable: true, findable: false },
-                { key: 'total_target_qty_reject', label: 'Rejected Target', type: 'number', sortable: true, findable: false },
-                { key: 'total_output', label: 'Total Output', type: 'number', sortable: true, findable: false },
-                { key: 'total_target', label: 'Total Target', type: 'number', sortable: true, findable: false },
-                { key: 'variance', label: 'Variance', type: 'number', sortable: false, findable: false },
+                { key: 'machine_group_name', label: t('summary.machine_group'), type: 'string', sortable: true, findable: true },
+                { key: 'production_name', label: t('summary.production'), type: 'string', sortable: true, findable: true },
+                { key: 'machine_count', label: t('summary.machines'), type: 'number', sortable: true, findable: false },
+                { key: 'total_output_qty_normal', label: t('summary.actual_normal'), type: 'number', sortable: true, findable: false },
+                { key: 'total_output_qty_reject', label: t('summary.actual_reject'), type: 'number', sortable: true, findable: false },
+                { key: 'total_target_qty_normal', label: t('summary.target_normal'), type: 'number', sortable: true, findable: false },
+                { key: 'total_target_qty_reject', label: t('summary.target_reject'), type: 'number', sortable: true, findable: false },
+                { key: 'total_output', label: t('summary.actual_total'), type: 'number', sortable: true, findable: false },
+                { key: 'total_target', label: t('summary.target_total'), type: 'number', sortable: true, findable: false },
+                { key: 'variance', label: t('summary.variance'), type: 'number', sortable: false, findable: false },
             ]" :per-page="20" :initial-sort="props.meta?.sort ?? 'total_output'" :initial-direction="props.meta?.direction ?? 'desc'" :loading="loading" @server-search="onServerSearch" @server-sort="onServerSort">
                 <template #cell="{ row, column }">
                     <template v-if="column.key === 'total_output_qty_normal'">
@@ -141,8 +144,8 @@ router.on('finish', () => (loading.value = false));
             </DataTable>
 
             <div class="mt-4 flex items-center justify-end gap-2">
-                <button class="hover:cursor-pointer btn" :disabled="!props.aggregates?.prev_page || loading" @click="goPrev">Previous</button>
-                <button class="hover:cursor-pointer btn" :disabled="!props.aggregates?.next_page || loading" @click="goNext">Next</button>
+                <button class="hover:cursor-pointer btn" :disabled="!props.aggregates?.prev_page || loading" @click="goPrev">{{ t('app.previous') }}</button>
+                <button class="hover:cursor-pointer btn" :disabled="!props.aggregates?.next_page || loading" @click="goNext">{{ t('app.next') }}</button>
             </div>
         </div>
     </AppLayout>

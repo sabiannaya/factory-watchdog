@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import ToastNotifications from '@/components/ToastNotifications.vue';
 import { useToast } from '@/composables/useToast';
 import AlertDialog from '@/components/ui/alert-dialog/AlertDialog.vue';
@@ -11,15 +11,18 @@ import AlertDialogContent from '@/components/ui/alert-dialog/AlertDialogContent.
 import AlertDialogDescription from '@/components/ui/alert-dialog/AlertDialogDescription.vue';
 import AlertDialogHeader from '@/components/ui/alert-dialog/AlertDialogHeader.vue';
 import AlertDialogTitle from '@/components/ui/alert-dialog/AlertDialogTitle.vue';
+import { useLocalization } from '@/composables/useLocalization';
 
 // Local breadcrumb shape to avoid cross-file typings
 interface BreadcrumbItem { title: string; href: string }
 
-const breadcrumbs: BreadcrumbItem[] = [
-  { title: 'Data Management', href: '/data-management/production' },
-  { title: 'Warehouse', href: '/data-management/warehouses' },
-  { title: 'Create', href: '/data-management/warehouses/create' },
-];
+const { t } = useLocalization();
+
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+  { title: t('data_management.data_management'), href: '/data-management/production' },
+  { title: t('data_management.warehouse'), href: '/data-management/warehouses' },
+  { title: t('data_management.create'), href: '/data-management/warehouses/create' },
+]);
 
 const { success } = useToast();
 

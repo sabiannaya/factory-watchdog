@@ -9,11 +9,14 @@ import ToastNotifications from '@/components/ToastNotifications.vue';
 import { useToast } from '@/composables/useToast';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import { useLocalization } from '@/composables/useLocalization';
 
-const breadcrumbs: BreadcrumbItem[] = [
-  { title: 'Data Management', href: '/data-management/production' },
-  { title: 'Glue Spreaders', href: '/data-management/glue-spreaders' },
-];
+const { t } = useLocalization();
+
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+  { title: t('data_management.data_management'), href: '/data-management/production' },
+  { title: t('data_management.glue_spreaders'), href: '/data-management/glue-spreaders' },
+]);
 
 const props = defineProps<GlueSpreadersPageProps>();
 
@@ -76,23 +79,23 @@ const formatDate = (val?: string | null) => {
 
 <template>
 
-  <Head title="Glue Spreaders" />
+  <Head :title="t('data_management.glue_spreaders')" />
 
   <AppLayout :breadcrumbs="breadcrumbs">
     <div class="p-4">
       <div class="flex items-center justify-between">
         <div>
-          <h2 class="text-2xl font-semibold">Glue Spreaders</h2>
-          <p class="text-sm text-muted-foreground">Manage glue spreader equipment used in production.</p>
+          <h2 class="text-2xl font-semibold">{{ t('data_management.glue_spreaders') }}</h2>
+          <p class="text-sm text-muted-foreground">{{ t('data_management.glue_spreaders_description') }}</p>
         </div>
-        <button class="hover:cursor-pointer btn" @click="goCreate">Add Glue Spreader</button>
+        <button class="hover:cursor-pointer btn" @click="goCreate">{{ t('data_management.add_glue_spreader') }}</button>
       </div>
 
       <div class="mt-4">
         <div class="relative">
           <Search class="absolute left-2 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input v-model="search" :disabled="loading" type="search"
-            placeholder="Search glue spreaders..." class="pl-8" />
+            :placeholder="t('data_management.search_placeholder')" class="pl-8" />
           <Spinner v-if="loading" class="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
         </div>
       </div>
@@ -103,17 +106,17 @@ const formatDate = (val?: string | null) => {
           <table class="w-full table-auto border-collapse">
             <thead>
               <tr class="text-left">
-                <th class="px-3 py-2 text-sm font-medium">ID</th>
-                <th class="px-3 py-2 text-sm font-medium">Name</th>
-                <th class="px-3 py-2 text-sm font-medium">Model</th>
-                <th class="px-3 py-2 text-sm font-medium">Glue (Kg)</th>
-                <th class="px-3 py-2 text-sm font-medium">Hardener (Kg)</th>
-                <th class="px-3 py-2 text-sm font-medium">Viscosity</th>
-                <th class="px-3 py-2 text-sm font-medium">Created At</th>
-                <th class="px-3 py-2 text-sm font-medium">Created By</th>
-                <th class="px-3 py-2 text-sm font-medium">Updated At</th>
-                <th class="px-3 py-2 text-sm font-medium">Modified By</th>
-                <th class="px-3 py-2 text-sm font-medium">Actions</th>
+                <th class="px-3 py-2 text-sm font-medium">{{ t('data_management.id') }}</th>
+                <th class="px-3 py-2 text-sm font-medium">{{ t('data_management.name') }}</th>
+                <th class="px-3 py-2 text-sm font-medium">{{ t('data_management.model') }}</th>
+                <th class="px-3 py-2 text-sm font-medium">{{ t('data_management.glue_kg') }}</th>
+                <th class="px-3 py-2 text-sm font-medium">{{ t('data_management.hardener_kg') }}</th>
+                <th class="px-3 py-2 text-sm font-medium">{{ t('data_management.viscosity') }}</th>
+                <th class="px-3 py-2 text-sm font-medium">{{ t('data_management.created_at') }}</th>
+                <th class="px-3 py-2 text-sm font-medium">{{ t('data_management.created_by') }}</th>
+                <th class="px-3 py-2 text-sm font-medium">{{ t('data_management.updated_at') }}</th>
+                <th class="px-3 py-2 text-sm font-medium">{{ t('data_management.modified_by') }}</th>
+                <th class="px-3 py-2 text-sm font-medium">{{ t('data_management.actions') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -130,9 +133,9 @@ const formatDate = (val?: string | null) => {
                 <td class="px-3 py-2 text-sm">{{ row.modified_by ?? '-' }}</td>
                 <td class="px-3 py-2 text-sm">
                   <div class="flex items-center gap-4">
-                    <IconActionButton :icon="Eye" label="Show" color="blue" :onClick="() => goShow(row.id)" />
-                    <IconActionButton :icon="Edit2" label="Edit" color="amber" :onClick="() => goEdit(row.id)" />
-                    <IconActionButton :icon="Trash2" label="Delete" color="red"
+                    <IconActionButton :icon="Eye" :label="t('data_management.view')" color="blue" :onClick="() => goShow(row.id)" />
+                    <IconActionButton :icon="Edit2" :label="t('data_management.edit')" color="amber" :onClick="() => goEdit(row.id)" />
+                    <IconActionButton :icon="Trash2" :label="t('data_management.delete')" color="red"
                       :onClick="() => confirmDelete(row.id, row.name)" />
                   </div>
                 </td>
@@ -143,9 +146,9 @@ const formatDate = (val?: string | null) => {
 
         <div class="mt-4 flex items-center justify-end gap-2">
           <button class="hover:cursor-pointer btn" :disabled="!props.glueSpreaders?.links?.prev || loading"
-            @click="goPrev">Previous</button>
+            @click="goPrev">{{ t('data_management.previous') }}</button>
           <button class="hover:cursor-pointer btn" :disabled="!props.glueSpreaders?.links?.next || loading"
-            @click="goNext">Next</button>
+            @click="goNext">{{ t('data_management.next') }}</button>
         </div>
       </div>
     </div>

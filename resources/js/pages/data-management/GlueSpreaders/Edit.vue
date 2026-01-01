@@ -12,16 +12,18 @@ import AlertDialogHeader from '@/components/ui/alert-dialog/AlertDialogHeader.vu
 import AlertDialogTitle from '@/components/ui/alert-dialog/AlertDialogTitle.vue';
 import ToastNotifications from '@/components/ToastNotifications.vue';
 import { useToast } from '@/composables/useToast';
+import { useLocalization } from '@/composables/useLocalization';
 
 const props = defineProps<{ glueSpreader: GlueSpreaderItem }>();
 
+const { t } = useLocalization();
 const { success } = useToast();
 
-const breadcrumbs: BreadcrumbItem[] = [
-  { title: 'Data Management', href: '/data-management/production' },
-  { title: 'Glue Spreaders', href: '/data-management/glue-spreaders' },
-  { title: 'Edit', href: `/data-management/glue-spreaders/${props.glueSpreader.id}/edit` },
-];
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+  { title: t('data_management.data_management'), href: '/data-management/production' },
+  { title: t('data_management.glue_spreaders'), href: '/data-management/glue-spreaders' },
+  { title: t('data_management.edit'), href: `/data-management/glue-spreaders/${props.glueSpreader.id}/edit` },
+]);
 
 const form = ref({
   id: props.glueSpreader.id,

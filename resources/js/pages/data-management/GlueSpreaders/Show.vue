@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type GlueSpreaderItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import IconActionButton from '@/components/ui/IconActionButton.vue';
 import { Edit2, Trash2, ArrowLeft } from 'lucide-vue-next';
 import AlertDialog from '@/components/ui/alert-dialog/AlertDialog.vue';
@@ -14,19 +14,21 @@ import AlertDialogHeader from '@/components/ui/alert-dialog/AlertDialogHeader.vu
 import AlertDialogTitle from '@/components/ui/alert-dialog/AlertDialogTitle.vue';
 import ToastNotifications from '@/components/ToastNotifications.vue';
 import { useToast } from '@/composables/useToast';
+import { useLocalization } from '@/composables/useLocalization';
 
 const props = defineProps<{ glueSpreader: GlueSpreaderItem }>();
 
+const { t } = useLocalization();
 const { success } = useToast();
 
-const breadcrumbs: BreadcrumbItem[] = [
-  { title: 'Data Management', href: '/data-management/production' },
-  { title: 'Glue Spreaders', href: '/data-management/glue-spreaders' },
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+  { title: t('data_management.data_management'), href: '/data-management/production' },
+  { title: t('data_management.glue_spreaders'), href: '/data-management/glue-spreaders' },
   {
     title: props.glueSpreader.name,
     href: `/data-management/glue-spreaders/${props.glueSpreader.id}`,
   },
-];
+]);
 
 const showDeleteDialog = ref(false);
 const deleting = ref(false);

@@ -2,16 +2,19 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
+import { useLocalization } from '@/composables/useLocalization';
 import ProductionFormFields from '@/components/production/ProductionFormFields.vue';
 import MachineGroupSelector from '@/components/production/MachineGroupSelector.vue';
 import type { InputConfig } from '@/composables/useInputConfig';
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Data Management', href: '/data-management/production' },
-    { title: 'Production', href: '/data-management/production' },
-    { title: 'Create', href: window.location.pathname },
-];
+const { t } = useLocalization();
+
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+    { title: t('data_management.data_management'), href: '/data-management/production' },
+    { title: t('data_management.production'), href: '/data-management/production' },
+    { title: t('data_management.create'), href: window.location.pathname },
+]);
 
 interface MachineGroup {
     machine_group_id: number;
@@ -129,13 +132,13 @@ function submit(): void {
 </script>
 
 <template>
-    <Head title="Create Production" />
+    <Head :title="t('data_management.create_production')" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="p-4 space-y-4">
             <div>
-                <h1 class="text-3xl font-bold">Create Production</h1>
+                <h1 class="text-3xl font-bold">{{ t('data_management.create_production') }}</h1>
                 <p class="text-muted-foreground dark:text-muted-foreground">
-                    Create a new production and attach machine groups with targets
+                    {{ t('data_management.create_production_description') }}
                 </p>
             </div>
 
@@ -153,14 +156,14 @@ function submit(): void {
 
                 <div class="flex items-center gap-3 pt-4">
                         <button type="submit" class="hover:cursor-pointer btn" :disabled="form.processing">
-                        {{ form.processing ? 'Creating...' : 'Create Production' }}
+                        {{ form.processing ? t('data_management.creating') : t('data_management.create_production') }}
                     </button>
                     <button
                         type="button"
                         class="btn btn-ghost"
                         @click="router.get('/data-management/production')"
                     >
-                        Cancel
+                        {{ t('data_management.cancel') }}
                     </button>
                 </div>
             </form>

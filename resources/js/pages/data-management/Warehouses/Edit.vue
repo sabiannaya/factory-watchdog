@@ -1,17 +1,20 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
+import { useLocalization } from '@/composables/useLocalization';
 // Breadcrumbs are simple arrays; avoid importing project-wide types which may not resolve here
 interface BreadcrumbItem { title: string; href: string }
 interface WarehouseProp { id: number; source?: string | null; quantity?: number | null; packing?: string | null; notes?: string | null; is_active?: boolean | null }
 const props = defineProps<{ warehouse: WarehouseProp }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
-  { title: 'Data Management', href: '/data-management/production' },
-  { title: 'Warehouse', href: '/data-management/warehouses' },
-  { title: 'Edit', href: '' },
-];
+const { t } = useLocalization();
+
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+  { title: t('data_management.data_management'), href: '/data-management/production' },
+  { title: t('data_management.warehouse'), href: '/data-management/warehouses' },
+  { title: t('data_management.edit'), href: '' },
+]);
 
 const form = useForm({
   source: props.warehouse.source ?? '',

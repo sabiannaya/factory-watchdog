@@ -9,23 +9,30 @@ import { show } from '@/routes/two-factor';
 import { edit as editPassword } from '@/routes/user-password';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
+import { useLocalization } from '@/composables/useLocalization';
+
+const { t } = useLocalization();
 
 const sidebarNavItems: NavItem[] = [
     {
-        title: 'Profile',
+        title: t('settings.profile'),
         href: editProfile(),
     },
     {
-        title: 'Password',
+        title: t('settings.password'),
         href: editPassword(),
     },
     {
-        title: 'Two-Factor Auth',
+        title: t('settings.two_factor'),
         href: show(),
     },
     {
-        title: 'Appearance',
+        title: t('settings.appearance'),
         href: editAppearance(),
+    },
+    {
+        title: t('settings.language'),
+        href: '/settings/language',
     },
 ];
 
@@ -35,8 +42,8 @@ const currentPath = typeof window !== undefined ? window.location.pathname : '';
 <template>
     <div class="px-4 py-6">
         <Heading
-            title="Settings"
-            description="Manage your profile and account settings"
+            :title="t('settings.title')"
+            :description="t('settings.description')"
         />
 
         <div class="flex flex-col lg:flex-row lg:space-x-12">

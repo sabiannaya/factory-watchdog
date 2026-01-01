@@ -3,6 +3,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 import { type BreadcrumbItem, type ProductFormErrors, type ProductItem } from '@/types';
+import { useLocalization } from '@/composables/useLocalization';
 import AlertDialog from '@/components/ui/alert-dialog/AlertDialog.vue';
 import AlertDialogAction from '@/components/ui/alert-dialog/AlertDialogAction.vue';
 import AlertDialogCancel from '@/components/ui/alert-dialog/AlertDialogCancel.vue';
@@ -16,12 +17,13 @@ import { useToast } from '@/composables/useToast';
 const props = defineProps<{ product: ProductItem }>();
 
 const { success } = useToast();
+const { t } = useLocalization();
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Data Management', href: '/data-management/production' },
-    { title: 'Products', href: '/data-management/products' },
-    { title: 'Edit', href: `/data-management/products/${props.product.id}/edit` },
-];
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+    { title: t('data_management.data_management'), href: '/data-management/production' },
+    { title: t('data_management.products'), href: '/data-management/products' },
+    { title: t('data_management.edit'), href: `/data-management/products/${props.product.id}/edit` },
+]);
 
 const form = ref({ 
     id: props.product.id,
@@ -70,54 +72,54 @@ const confirmSubmit = () => {
 </script>
 
 <template>
-  <Head :title="`Edit Product - ${props.product.name}`" />
+  <Head :title="`${t('data_management.edit_product')} - ${props.product.name}`" />
 
   <AppLayout :breadcrumbs="breadcrumbs">
     <div class="p-4">
       <div class="rounded-xl border border-sidebar-border/70 p-6">
-        <h2 class="text-lg font-semibold">Edit Product</h2>
-        <p class="mt-2 text-sm text-muted-foreground">Update product details.</p>
+        <h2 class="text-lg font-semibold">{{ t('data_management.edit_product') }}</h2>
+        <p class="mt-2 text-sm text-muted-foreground">{{ t('data_management.edit_product_description') }}</p>
 
         <div class="mt-4">
           <div class="grid grid-cols-2 gap-4">
             <label class="block">
-              <div class="text-sm font-medium">Name <span class="text-red-500">*</span></div>
-              <input v-model="form.name" type="text" placeholder="Enter product name" class="input" :class="{ 'border-red-500': errors.name }" />
+              <div class="text-sm font-medium">{{ t('data_management.name') }} <span class="text-red-500">*</span></div>
+              <input v-model="form.name" type="text" :placeholder="t('data_management.enter_product_name')" class="input" :class="{ 'border-red-500': errors.name }" />
               <p v-if="errors.name" class="mt-1 text-xs text-red-500">{{ errors.name }}</p>
             </label>
 
             <label class="block">
-              <div class="text-sm font-medium">Thickness <span class="text-red-500">*</span></div>
-              <input v-model="form.thickness" type="text" placeholder="e.g., 3mm" class="input" :class="{ 'border-red-500': errors.thickness }" />
+              <div class="text-sm font-medium">{{ t('data_management.thickness') }} <span class="text-red-500">*</span></div>
+              <input v-model="form.thickness" type="text" :placeholder="t('data_management.thickness_placeholder')" class="input" :class="{ 'border-red-500': errors.thickness }" />
               <p v-if="errors.thickness" class="mt-1 text-xs text-red-500">{{ errors.thickness }}</p>
             </label>
 
             <label class="block">
-              <div class="text-sm font-medium">Ply <span class="text-red-500">*</span></div>
-              <input v-model="form.ply" type="text" placeholder="e.g., 2" class="input" :class="{ 'border-red-500': errors.ply }" />
+              <div class="text-sm font-medium">{{ t('data_management.ply') }} <span class="text-red-500">*</span></div>
+              <input v-model="form.ply" type="text" :placeholder="t('data_management.ply_placeholder')" class="input" :class="{ 'border-red-500': errors.ply }" />
               <p v-if="errors.ply" class="mt-1 text-xs text-red-500">{{ errors.ply }}</p>
             </label>
 
             <label class="block">
-              <div class="text-sm font-medium">Glue Type <span class="text-red-500">*</span></div>
-              <input v-model="form.glue_type" type="text" placeholder="e.g., PVA, PU" class="input" :class="{ 'border-red-500': errors.glue_type }" />
+              <div class="text-sm font-medium">{{ t('data_management.glue_type') }} <span class="text-red-500">*</span></div>
+              <input v-model="form.glue_type" type="text" :placeholder="t('data_management.glue_type_placeholder')" class="input" :class="{ 'border-red-500': errors.glue_type }" />
               <p v-if="errors.glue_type" class="mt-1 text-xs text-red-500">{{ errors.glue_type }}</p>
             </label>
 
             <label class="block">
-              <div class="text-sm font-medium">Qty <span class="text-red-500">*</span></div>
+              <div class="text-sm font-medium">{{ t('data_management.qty') }} <span class="text-red-500">*</span></div>
               <input v-model.number="form.qty" type="number" placeholder="0" class="input" :class="{ 'border-red-500': errors.qty }" />
               <p v-if="errors.qty" class="mt-1 text-xs text-red-500">{{ errors.qty }}</p>
             </label>
 
             <label class="block col-span-2">
-              <div class="text-sm font-medium">Notes</div>
-              <textarea v-model="form.notes" placeholder="Optional notes about this product" class="input"></textarea>
+              <div class="text-sm font-medium">{{ t('data_management.notes') }}</div>
+              <textarea v-model="form.notes" :placeholder="t('data_management.notes_placeholder')" class="input"></textarea>
             </label>
           </div>
 
           <div class="mt-4 flex justify-end">
-            <button class="hover:cursor-pointer btn" :disabled="submitting" @click="handleSubmit">Save</button>
+            <button class="hover:cursor-pointer btn" :disabled="submitting" @click="handleSubmit">{{ t('data_management.save') }}</button>
           </div>
         </div>
       </div>
@@ -126,23 +128,23 @@ const confirmSubmit = () => {
     <AlertDialog :open="showConfirmDialog" @update:open="showConfirmDialog = $event">
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Confirm Update Product</AlertDialogTitle>
+          <AlertDialogTitle>{{ t('data_management.confirm_update_product') }}</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to update this product?
+            {{ t('data_management.confirm_update_product_description') }}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div class="rounded-lg bg-muted/50 p-3">
           <div class="space-y-1 text-sm">
-            <div><span class="font-medium">Name:</span> {{ form.name }}</div>
-            <div><span class="font-medium">Thickness:</span> {{ form.thickness }}</div>
-            <div><span class="font-medium">Ply:</span> {{ form.ply }}</div>
-            <div><span class="font-medium">Glue Type:</span> {{ form.glue_type }}</div>
-            <div><span class="font-medium">Qty:</span> {{ form.qty }}</div>
+            <div><span class="font-medium">{{ t('data_management.name') }}:</span> {{ form.name }}</div>
+            <div><span class="font-medium">{{ t('data_management.thickness') }}:</span> {{ form.thickness }}</div>
+            <div><span class="font-medium">{{ t('data_management.ply') }}:</span> {{ form.ply }}</div>
+            <div><span class="font-medium">{{ t('data_management.glue_type') }}:</span> {{ form.glue_type }}</div>
+            <div><span class="font-medium">{{ t('data_management.qty') }}:</span> {{ form.qty }}</div>
           </div>
         </div>
         <div class="flex justify-end gap-2">
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction @click="confirmSubmit" :disabled="submitting">Save</AlertDialogAction>
+          <AlertDialogCancel>{{ t('data_management.cancel') }}</AlertDialogCancel>
+          <AlertDialogAction @click="confirmSubmit" :disabled="submitting">{{ t('data_management.save') }}</AlertDialogAction>
         </div>
       </AlertDialogContent>
     </AlertDialog>

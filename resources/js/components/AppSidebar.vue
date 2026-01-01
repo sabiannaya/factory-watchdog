@@ -19,6 +19,9 @@ import { Link, usePage } from '@inertiajs/vue3';
 import { BookOpen, Folder, LayoutGrid, Clock, BarChart2, Layers, Wrench, PlusCircle, ClipboardList, Users, Shield, Calendar } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 import { computed } from 'vue';
+import { useLocalization } from '@/composables/useLocalization';
+
+const { t } = useLocalization();
 
 const page = usePage();
 
@@ -40,7 +43,7 @@ const mainNavItems = computed<NavItem[]>(() => {
     if (!isSuper.value) return [];
     return [
         {
-            title: 'Dashboard',
+            title: t('app.dashboard'),
             href: dashboard(),
             icon: LayoutGrid,
         },
@@ -71,13 +74,13 @@ const footerNavItems: NavItem[] = [];
 
             <!-- Input Section -->
             <SidebarGroup class="px-2 py-0">
-                <SidebarGroupLabel>Input</SidebarGroupLabel>
+                <SidebarGroupLabel>{{ t('nav.input') }}</SidebarGroupLabel>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton as-child :tooltip="'Record Hourly Input'">
+                        <SidebarMenuButton as-child :tooltip="t('nav.hourly_input')">
                             <Link href="/input">
                                 <PlusCircle />
-                                <span>Hourly Input</span>
+                                <span>{{ t('nav.hourly_input') }}</span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -86,22 +89,22 @@ const footerNavItems: NavItem[] = [];
 
             <!-- Data Management Section -->
             <SidebarGroup class="px-2 py-0">
-                <SidebarGroupLabel>Data Management</SidebarGroupLabel>
+                <SidebarGroupLabel>{{ t('nav.data_management') }}</SidebarGroupLabel>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton as-child :tooltip="'Productions'">
+                        <SidebarMenuButton as-child :tooltip="t('nav.productions')">
                             <Link href="/data-management/production">
                                 <LayoutGrid />
-                                <span>Productions</span>
+                                <span>{{ t('nav.productions') }}</span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
 
                     <SidebarMenuItem>
-                        <SidebarMenuButton as-child :tooltip="'Machines'">
+                        <SidebarMenuButton as-child :tooltip="t('nav.machine_groups')">
                             <Link href="/data-management/machine">
                                 <Folder />
-                                <span>Machines</span>
+                                <span>{{ t('nav.machine_groups') }}</span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -116,28 +119,28 @@ const footerNavItems: NavItem[] = [];
                     </SidebarMenuItem>
 
                     <SidebarMenuItem>
-                        <SidebarMenuButton as-child :tooltip="'Products'">
+                        <SidebarMenuButton as-child :tooltip="t('nav.products')">
                             <Link href="/data-management/products">
                                 <Folder />
-                                <span>Products</span>
+                                <span>{{ t('nav.products') }}</span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
 
                     <SidebarMenuItem v-if="canAccessGlueSpreaders">
-                        <SidebarMenuButton as-child :tooltip="'Glue Spreaders'">
+                        <SidebarMenuButton as-child :tooltip="t('nav.glue_spreaders')">
                             <Link href="/data-management/glue-spreaders">
                                 <Wrench />
-                                <span>Glue Spreaders</span>
+                                <span>{{ t('nav.glue_spreaders') }}</span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
 
                     <SidebarMenuItem v-if="canAccessWarehouse">
-                        <SidebarMenuButton as-child :tooltip="'Warehouse'">
+                        <SidebarMenuButton as-child :tooltip="t('nav.warehouses')">
                             <Link href="/data-management/warehouses">
                                 <Wrench />
-                                <span>Warehouse</span>
+                                <span>{{ t('nav.warehouses') }}</span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -146,19 +149,19 @@ const footerNavItems: NavItem[] = [];
 
             <!-- Logs Section -->
             <SidebarGroup class="px-2 py-0">
-                <SidebarGroupLabel>Logs</SidebarGroupLabel>
+                <SidebarGroupLabel>{{ t('nav.logs') }}</SidebarGroupLabel>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton as-child :tooltip="'All Hourly Logs'">
+                        <SidebarMenuButton as-child :tooltip="t('nav.hourly_logs')">
                             <Link href="/logs">
                                 <Clock />
-                                <span>Hourly Logs</span>
+                                <span>{{ t('nav.hourly_logs') }}</span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
 
                     <SidebarMenuItem>
-                        <SidebarMenuButton as-child :tooltip="'Logs by Machine Group'">
+                        <SidebarMenuButton as-child :tooltip="'Group Logs'">
                             <Link href="/logs/group">
                                 <BarChart2 />
                                 <span>Group Logs</span>
@@ -167,10 +170,10 @@ const footerNavItems: NavItem[] = [];
                     </SidebarMenuItem>
 
                     <SidebarMenuItem>
-                        <SidebarMenuButton as-child :tooltip="'Logs by Production'">
+                        <SidebarMenuButton as-child :tooltip="t('nav.production_logs')">
                             <Link href="/logs/production">
                                 <Layers />
-                                <span>Production Logs</span>
+                                <span>{{ t('nav.production_logs') }}</span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -181,31 +184,31 @@ const footerNavItems: NavItem[] = [];
 
             <!-- Summary Section -->
             <SidebarGroup class="px-2 py-0">
-                <SidebarGroupLabel>Summary</SidebarGroupLabel>
+                <SidebarGroupLabel>{{ t('nav.summary') }}</SidebarGroupLabel>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton as-child :tooltip="'Machine Group Summary'">
+                        <SidebarMenuButton as-child :tooltip="t('nav.machine_groups')">
                             <Link href="/summary/machine-groups">
                                 <BarChart2 />
-                                <span>Machine Groups</span>
+                                <span>{{ t('nav.machine_groups') }}</span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
 
                     <SidebarMenuItem>
-                        <SidebarMenuButton as-child :tooltip="'Production Summary'">
+                        <SidebarMenuButton as-child :tooltip="t('nav.productions')">
                             <Link href="/summary/productions">
                                 <Layers />
-                                <span>Productions</span>
+                                <span>{{ t('nav.productions') }}</span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     
                     <SidebarMenuItem>
-                        <SidebarMenuButton as-child :tooltip="'Daily Summary'">
+                        <SidebarMenuButton as-child :tooltip="t('nav.daily_summary')">
                             <Link href="/summary/daily">
                                 <Calendar />
-                                <span>Daily Summary</span>
+                                <span>{{ t('nav.daily_summary') }}</span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -216,14 +219,14 @@ const footerNavItems: NavItem[] = [];
             <SidebarGroup v-if="isSuper" class="px-2 py-0">
                 <SidebarGroupLabel class="text-purple-600 dark:text-purple-400">
                     <Shield class="size-3 mr-1" />
-                    Admin
+                    {{ t('nav.admin') }}
                 </SidebarGroupLabel>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton as-child :tooltip="'User Management'">
+                        <SidebarMenuButton as-child :tooltip="t('nav.users')">
                             <Link href="/admin/users">
                                 <Users />
-                                <span>Users</span>
+                                <span>{{ t('nav.users') }}</span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

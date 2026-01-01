@@ -13,17 +13,20 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
+import { useLocalization } from '@/composables/useLocalization';
 
-const breadcrumbs: BreadcrumbItem[] = [
+const { t } = useLocalization();
+
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     {
-        title: 'Data Management',
+        title: t('data_management.data_management'),
         href: '/data-management/production',
     },
     {
-        title: 'Targets',
+        title: t('data_management.targets'),
         href: '/data-management/targets',
     },
-];
+]);
 
 const props = defineProps<{
     productions: Array<{ production_id: number; production_name: string }>;
@@ -69,9 +72,9 @@ const focusDateInput = () => {
 };
 
 const selectedProductionLabel = computed(() => {
-    if (!selectedProduction.value) return 'Choose Production';
+    if (!selectedProduction.value) return t('data_management.choose_production');
     const found = props.productions.find(p => p.production_id === selectedProduction.value);
-    return found ? found.production_name : 'Choose Production';
+    return found ? found.production_name : t('data_management.choose_production');
 });
 
 const selectProduction = (id: number | null) => {
@@ -114,7 +117,7 @@ const getDefaultTarget = (machineGroupId: number, fieldName: string) => {
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbs">
-        <Head title="Targets Management" />
+        <Head :title="t('data_management.targets')" />
 
         <div class="p-4 space-y-4">
             <!-- <div class="flex items-center justify-between">
@@ -129,7 +132,7 @@ const getDefaultTarget = (machineGroupId: number, fieldName: string) => {
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
-                    <label class="block text-sm font-medium mb-2">Select Production</label>
+                    <label class="block text-sm font-medium mb-2">{{ t('data_management.select_production') }}</label>
                     <DropdownMenu class="relative w-full">
                         <DropdownMenuTrigger :as-child="true" :style="{ '--reka-dropdown-menu-trigger-width': triggerWidth + 'px' }">
                             <button ref="triggerRef" type="button" class="input w-full flex items-center justify-between">
@@ -139,7 +142,7 @@ const getDefaultTarget = (machineGroupId: number, fieldName: string) => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start" :sideOffset="4" class="w-(--reka-dropdown-menu-trigger-width) min-w-[12rem]">
                             <DropdownMenuItem :as-child="true">
-                                <button class="block w-full text-left px-3 py-2 text-sm" @click="selectProduction(null)">Choose Production</button>
+                                <button class="block w-full text-left px-3 py-2 text-sm" @click="selectProduction(null)">{{ t('data_management.choose_production') }}</button>
                             </DropdownMenuItem>
                             <template v-for="prod in productions" :key="prod.production_id">
                                 <DropdownMenuItem :as-child="true">
@@ -150,7 +153,7 @@ const getDefaultTarget = (machineGroupId: number, fieldName: string) => {
                     </DropdownMenu>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium mb-2">Select Date</label>
+                    <label class="block text-sm font-medium mb-2">{{ t('data_management.select_date') }}</label>
                     <div class="relative">
                         <input
                             v-model="selectedDate"
@@ -166,7 +169,7 @@ const getDefaultTarget = (machineGroupId: number, fieldName: string) => {
             </div>
 
             <div v-if="!selectedProduction" class="text-center py-12 rounded-lg border border-dashed border-sidebar-border/70 dark:border-sidebar-border/70 bg-muted/20 dark:bg-muted/20">
-                <p class="text-muted-foreground dark:text-muted-foreground">Please select a production to view machine groups</p>
+                <p class="text-muted-foreground dark:text-muted-foreground">{{ t('data_management.please_select_production_to_view') }}</p>
             </div>
 
             <div v-else-if="machineGroups && machineGroups.length > 0" class="space-y-6">
@@ -175,7 +178,7 @@ const getDefaultTarget = (machineGroupId: number, fieldName: string) => {
                         <div>
                             <h2 class="text-xl font-bold">{{ mg.name }}</h2>
                             <p class="text-sm text-muted-foreground dark:text-muted-foreground mt-1">
-                                {{ mg.machine_count }} machines
+                                {{ mg.machine_count }} {{ t('data_management.machines') }}
                             </p>
                         </div>
                         <IconActionButton :icon="Edit2" label="Edit" color="amber" :onClick="() => router.get(`/data-management/targets/${mg.production_machine_group_id}/edit`, { date: selectedDate })" />
@@ -187,10 +190,10 @@ const getDefaultTarget = (machineGroupId: number, fieldName: string) => {
                             <div v-for="field in mg.fields.filter(f => f !== 'qty')" :key="`${mg.production_machine_group_id}-target-${field}`" class="rounded-lg bg-muted/40 dark:bg-muted/40 p-3">
                                 <p class="text-sm font-medium mb-1 capitalize">{{ field.replace(/_/g, ' ') }}</p>
                                 <p class="text-lg font-semibold">
-                                    {{ getValueForField(mg.production_machine_group_id, field, 'target') ?? 'Not set' }}
+                                    {{ getValueForField(mg.production_machine_group_id, field, 'target') ?? t('data_management.not_set') }}
                                 </p>
                                 <p class="text-xs text-muted-foreground dark:text-muted-foreground mt-1">
-                                    Default: {{ getDefaultTarget(mg.production_machine_group_id, field) ?? 'No default' }}
+                                    {{ t('data_management.default') }}: {{ getDefaultTarget(mg.production_machine_group_id, field) ?? t('data_management.no_default') }}
                                 </p>
                                 <p v-if="getValueForField(mg.production_machine_group_id, field, 'keterangan')" class="text-xs text-muted-foreground dark:text-muted-foreground mt-2 italic">
                                     {{ getValueForField(mg.production_machine_group_id, field, 'keterangan') }}
@@ -207,7 +210,7 @@ const getDefaultTarget = (machineGroupId: number, fieldName: string) => {
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                                 </svg>
-                                Record hourly output
+                                {{ t('data_management.record_hourly_output') }}
                             </Link>
                         </div>
                     </div>
@@ -215,7 +218,7 @@ const getDefaultTarget = (machineGroupId: number, fieldName: string) => {
             </div>
 
             <div v-else-if="selectedProduction && machineGroups" class="text-center py-12 rounded-lg border border-dashed border-sidebar-border/70 dark:border-sidebar-border/70 bg-muted/20 dark:bg-muted/20">
-                <p class="text-muted-foreground dark:text-muted-foreground">No machine groups found for this production</p>
+                <p class="text-muted-foreground dark:text-muted-foreground">{{ t('data_management.no_machine_groups_found') }}</p>
             </div>
         </div>
     </AppLayout>

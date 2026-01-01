@@ -3,6 +3,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { ref, watch, computed } from 'vue';
 import { type BreadcrumbItem, type ProductsPageProps } from '@/types';
+import { useLocalization } from '@/composables/useLocalization';
 import IconActionButton from '@/components/ui/IconActionButton.vue';
 import { Eye, Edit2, Trash2, Search } from 'lucide-vue-next';
 import ToastNotifications from '@/components/ToastNotifications.vue';
@@ -10,12 +11,14 @@ import { useToast } from '@/composables/useToast';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Data Management', href: '/data-management/production' },
-    { title: 'Products', href: '/data-management/products' },
-];
-
 const props = defineProps<ProductsPageProps>();
+
+const { t } = useLocalization();
+
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+    { title: t('data_management.data_management'), href: '/data-management/production' },
+    { title: t('data_management.products'), href: '/data-management/products' },
+]);
 
 const { success } = useToast();
 
@@ -40,7 +43,7 @@ const goShow = (id: number | string) => router.get(`/data-management/products/${
 const goEdit = (id: number | string) => router.get(`/data-management/products/${id}/edit`);
 
 const confirmDelete = (id: number | string, name: string) => {
-  if (!window.confirm('Delete this product?')) return;
+  if (!window.confirm(t('data_management.confirm_delete_product'))) return;
   router.visit(`/data-management/products/${id}`, { 
     method: 'delete',
     onSuccess: () => {
@@ -66,16 +69,16 @@ router.on('finish', () => (loading.value = false));
 </script>
 
 <template>
-  <Head title="Products" />
+  <Head :title="t('data_management.products')" />
 
   <AppLayout :breadcrumbs="breadcrumbs">
     <div class="p-4">
         <div class="flex items-center justify-between">
           <div>
-            <h2 class="text-2xl font-semibold">Products (Setting Produk)</h2>
-            <p class="text-sm text-muted-foreground">Manage product definitions used by production.</p>
+            <h2 class="text-2xl font-semibold">{{ t('data_management.products') }}</h2>
+            <p class="text-sm text-muted-foreground">{{ t('data_management.products_description') }}</p>
           </div>
-          <button class="hover:cursor-pointer btn" @click="goCreate">Add Product</button>
+          <button class="hover:cursor-pointer btn" @click="goCreate">{{ t('data_management.add_product') }}</button>
         </div>
 
         <div class="mt-4">
@@ -85,7 +88,7 @@ router.on('finish', () => (loading.value = false));
               v-model="search"
               :disabled="loading"
               type="search"
-              placeholder="Search products..."
+              :placeholder="t('data_management.search_placeholder')"
               class="pl-8"
             />
             <Spinner v-if="loading" class="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -99,12 +102,12 @@ router.on('finish', () => (loading.value = false));
               <thead>
                 <tr class="text-left">
                   <th class="px-3 py-2 text-sm font-medium">ID</th>
-                  <th class="px-3 py-2 text-sm font-medium">Name</th>
-                  <th class="px-3 py-2 text-sm font-medium">Thickness</th>
-                  <th class="px-3 py-2 text-sm font-medium">Ply</th>
-                  <th class="px-3 py-2 text-sm font-medium">Glue</th>
-                  <th class="px-3 py-2 text-sm font-medium">Qty</th>
-                  <th class="px-3 py-2 text-sm font-medium">Actions</th>
+                  <th class="px-3 py-2 text-sm font-medium">{{ t('data_management.name') }}</th>
+                  <th class="px-3 py-2 text-sm font-medium">{{ t('data_management.thickness') }}</th>
+                  <th class="px-3 py-2 text-sm font-medium">{{ t('data_management.ply') }}</th>
+                  <th class="px-3 py-2 text-sm font-medium">{{ t('data_management.glue') }}</th>
+                  <th class="px-3 py-2 text-sm font-medium">{{ t('data_management.qty') }}</th>
+                  <th class="px-3 py-2 text-sm font-medium">{{ t('data_management.actions') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -128,8 +131,8 @@ router.on('finish', () => (loading.value = false));
           </div>
 
           <div class="mt-4 flex items-center justify-end gap-2">
-            <button class="hover:cursor-pointer btn" :disabled="!props.products?.links?.prev || loading" @click="goPrev">Previous</button>
-            <button class="hover:cursor-pointer btn" :disabled="!props.products?.links?.next || loading" @click="goNext">Next</button>
+            <button class="hover:cursor-pointer btn" :disabled="!props.products?.links?.prev || loading" @click="goPrev">{{ t('data_management.previous') }}</button>
+            <button class="hover:cursor-pointer btn" :disabled="!props.products?.links?.next || loading" @click="goNext">{{ t('data_management.next') }}</button>
           </div>
       </div>
     </div>

@@ -9,6 +9,9 @@ import TooltipContent from '@/components/ui/tooltip/TooltipContent.vue'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { computed, ref, nextTick } from 'vue';
 import { type BreadcrumbItem } from '@/types';
+import { useLocalization } from '@/composables/useLocalization';
+
+const { t } = useLocalization();
 
 interface SummaryRow {
     production_machine_group_id: number;
@@ -38,10 +41,10 @@ const props = defineProps<{
     summaryData: SummaryRow[];
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Summary', href: '/summary/daily' },
-    { title: 'Daily Summary', href: window.location.pathname },
-];
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+    { title: t('summary.title'), href: '/summary/daily' },
+    { title: t('summary.daily_summary'), href: window.location.pathname },
+]);
 
 const dateInput = ref(props.date);
 const productionFilter = ref(props.selectedProductionId ? props.selectedProductionId.toString() : 'all');
@@ -150,18 +153,18 @@ const overallAchievement = computed(() => {
 
 <template>
 
-    <Head title="Daily Summary" />
+    <Head :title="t('summary.daily_summary')" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="p-4 space-y-6">
             <div class="flex items-start justify-between">
                 <div>
-                    <h1 class="text-2xl font-bold">Daily Summary</h1>
-                    <p class="text-muted-foreground">Compare daily targets with actual outputs</p>
+                    <h1 class="text-2xl font-bold">{{ t('summary.daily_summary') }}</h1>
+                    <p class="text-muted-foreground">{{ t('summary.daily_summary_description') }}</p>
                 </div>
                 <button @click="exportToExcel" class="btn-secondary flex items-center gap-2">
                     <FileDown class="size-4" />
-                    Export to Excel
+                    {{ t('app.export') }}
                 </button>
             </div>
 
@@ -170,7 +173,7 @@ const overallAchievement = computed(() => {
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <!-- Date Filter -->
                     <div class="space-y-2">
-                        <label class="text-sm font-medium">Date</label>
+                        <label class="text-sm font-medium">{{ t('app.date') }}</label>
                         <div class="flex items-center gap-2">
                             <button @click="previousDay"
                                 class="px-3 py-2 rounded-md border border-input hover:bg-muted transition">
@@ -186,17 +189,17 @@ const overallAchievement = computed(() => {
 
                     <!-- Production Filter -->
                     <div class="space-y-2">
-                        <label class="text-sm font-medium">Production</label>
+                        <label class="text-sm font-medium">{{ t('summary.production') }}</label>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <button ref="triggerRef" @click="adjustDropdownWidth" class="input w-full text-left flex items-center justify-between">
-                                    <span v-if="productionFilter === 'all'">All Productions</span>
+                                    <span v-if="productionFilter === 'all'">{{ t('summary.all_productions') }}</span>
                                     <span v-else>{{ props.productions.find(p => p.production_id.toString() === productionFilter)?.production_name }}</span>
                                     <svg class="ml-2 h-4 w-4 opacity-70" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                 </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent class="w-full min-w-full">
-                                <DropdownMenuItem class="block w-full text-left px-3 py-2" @click.prevent="(productionFilter = 'all', handleProductionChange())">All Productions</DropdownMenuItem>
+                                <DropdownMenuItem class="block w-full text-left px-3 py-2" @click.prevent="(productionFilter = 'all', handleProductionChange())">{{ t('summary.all_productions') }}</DropdownMenuItem>
                                 <DropdownMenuItem v-for="production in props.productions" :key="production.production_id" class="block w-full text-left px-3 py-2" @click.prevent="(productionFilter = production.production_id.toString(), handleProductionChange())">
                                     {{ production.production_name }}
                                 </DropdownMenuItem>
@@ -209,14 +212,14 @@ const overallAchievement = computed(() => {
             <!-- Summary Cards -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="rounded-lg border border-sidebar-border/70 bg-card p-4">
-                    <p class="text-sm text-muted-foreground">Total Target</p>
+                    <p class="text-sm text-muted-foreground">{{ t('summary.total_target') }}</p>
                     <p class="text-2xl font-bold">{{ Number(totals.target_total).toLocaleString() }}</p>
-                    <p class="text-xs text-muted-foreground mt-1">normal: {{
-                        Number(totals.target_normal).toLocaleString() }} | reject: {{
+                    <p class="text-xs text-muted-foreground mt-1">{{ t('summary.target_normal').toLowerCase() }}: {{
+                        Number(totals.target_normal).toLocaleString() }} | {{ t('summary.target_reject').toLowerCase() }}: {{
                             Number(totals.target_reject).toLocaleString() }}</p>
                 </div>
                 <div class="rounded-lg border border-sidebar-border/70 bg-card p-4">
-                    <p class="text-sm text-muted-foreground">Total Actual</p>
+                    <p class="text-sm text-muted-foreground">{{ t('summary.total_actual') }}</p>
                     <p class="text-2xl font-bold">{{ Number(totals.actual_total).toLocaleString() }}</p>
                     <!-- <p class="text-xs text-muted-foreground mt-1">
                         {{ overallAchievement >= 100 ? 'Achieved' : 'Below' }}
@@ -232,30 +235,29 @@ const overallAchievement = computed(() => {
                     <table class="w-full">
                         <thead class="bg-muted/50 border-b border-sidebar-border/70">
                             <tr>
-                                <th class="px-4 py-3 text-left text-sm font-medium">Production</th>
-                                <th class="px-4 py-3 text-left text-sm font-medium">Machine Group</th>
-                                <th class="px-4 py-3 text-right text-sm font-medium">Target Normal</th>
-                                <th class="px-4 py-3 text-right text-sm font-medium">Target Reject</th>
-                                <th class="px-4 py-3 text-right text-sm font-medium">Output Normal</th>
-                                <th class="px-4 py-3 text-right text-sm font-medium">Output Reject</th>
+                                <th class="px-4 py-3 text-left text-sm font-medium">{{ t('summary.production') }}</th>
+                                <th class="px-4 py-3 text-left text-sm font-medium">{{ t('summary.machine_group') }}</th>
+                                <th class="px-4 py-3 text-right text-sm font-medium">{{ t('summary.target_normal') }}</th>
+                                <th class="px-4 py-3 text-right text-sm font-medium">{{ t('summary.target_reject') }}</th>
+                                <th class="px-4 py-3 text-right text-sm font-medium">{{ t('summary.actual_normal') }}</th>
+                                <th class="px-4 py-3 text-right text-sm font-medium">{{ t('summary.actual_reject') }}</th>
                                 <th class="px-4 py-3 text-right text-sm font-medium">
                                     <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <span class="inline-flex items-center gap-1 cursor-help select-none">
-                                                    Variance
+                                                    {{ t('summary.variance') }}
                                                     <Info class="size-3.5 opacity-70" />
                                                 </span>
                                             </TooltipTrigger>
                                             <TooltipContent side="top" class="text-left">
-                                                <div class="font-semibold mb-1">Variance</div>
-                                                <div>Formula: (Qty Normal - Target Normal) + (Target Reject - Qty Reject)</div>
-                                                <div class="mt-1 text-muted-foreground">Positive = above target, Negative = below target</div>
+                                                <div class="font-semibold mb-1">{{ t('summary.variance') }}</div>
+                                                <div>{{ t('summary.variance_info') }}</div>
                                             </TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
                                 </th>
-                                <th class="px-4 py-3 text-center text-sm font-medium">Status</th>
+                                <th class="px-4 py-3 text-center text-sm font-medium">{{ t('summary.status') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -288,13 +290,13 @@ const overallAchievement = computed(() => {
                                                 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-400'
                                                 : 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-400'
                                             ">
-                                        {{ row.status === 'achieved' ? 'Achieved' : 'Below Target' }}
+                                        {{ row.status === 'achieved' ? t('summary.achieved') : t('summary.below') }}
                                     </span>
                                 </td>
                             </tr>
                             <tr v-if="props.summaryData.length === 0">
                                 <td colspan="8" class="px-4 py-8 text-center text-sm text-muted-foreground">
-                                    No data available for this date
+                                    {{ t('summary.no_data') }}
                                 </td>
                             </tr>
                         </tbody>

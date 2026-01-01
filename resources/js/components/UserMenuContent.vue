@@ -10,6 +10,9 @@ import { edit } from '@/routes/profile';
 import type { User } from '@/types';
 import { Link, router } from '@inertiajs/vue3';
 import { LogOut, Settings } from 'lucide-vue-next';
+import { useLocalization } from '@/composables/useLocalization';
+
+const { t } = useLocalization();
 
 interface Props {
     user: User;
@@ -17,11 +20,13 @@ interface Props {
 
 const logout = () => {
     router.post('/logout', {}, {
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-        },
         onFinish: () => {
-            router.visit('/');
+            // Force navigation regardless of response status
+            window.location.href = '/';
+        },
+        onError: () => {
+            // Even if there's an error, redirect to home
+            window.location.href = '/';
         }
     });
 };
@@ -40,14 +45,14 @@ defineProps<Props>();
         <DropdownMenuItem :as-child="true">
             <Link class="block w-full cursor-pointer" :href="edit()" prefetch as="button">
                 <Settings class="mr-2 h-4 w-4" />
-                Settings
+                {{ t('app.settings') }}
             </Link>
         </DropdownMenuItem>
 
         <DropdownMenuItem :as-child="true">
             <button class="block w-full text-left cursor-pointer" @click="logout">
                 <LogOut class="mr-2 h-4 w-4" />
-                Log out
+                {{ t('app.logout') }}
             </button>
         </DropdownMenuItem>
     </DropdownMenuGroup>

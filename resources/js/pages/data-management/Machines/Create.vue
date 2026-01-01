@@ -2,16 +2,19 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import MachineGroupFormFields from '@/components/machine-group/MachineGroupFormFields.vue';
 import InputConfigEditor from '@/components/machine-group/InputConfigEditor.vue';
 import type { InputConfig } from '@/composables/useInputConfig';
+import { useLocalization } from '@/composables/useLocalization';
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Data Management', href: '/data-management/production' },
-    { title: 'Machine', href: '/data-management/machine' },
-    { title: 'Create', href: window.location.pathname },
-];
+const { t } = useLocalization();
+
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+    { title: t('data_management.data_management'), href: '/data-management/production' },
+    { title: t('data_management.machines'), href: '/data-management/machine' },
+    { title: t('data_management.create'), href: window.location.pathname },
+]);
 
 const initialConfig: InputConfig = {
     type: 'qty_only',
@@ -43,12 +46,12 @@ function submit(): void {
 </script>
 
 <template>
-    <Head title="Create Machine Group" />
+    <Head :title="t('data_management.create_machine')" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="p-4">
             <div class="rounded-xl border border-sidebar-border/70 p-6">
-                <h2 class="text-lg font-semibold">Create Machine Group</h2>
-                <p class="mt-2 text-sm text-muted-foreground">Create a new machine group with custom input configuration</p>
+                <h2 class="text-lg font-semibold">{{ t('data_management.create_machine') }}</h2>
+                <p class="mt-2 text-sm text-muted-foreground">{{ t('data_management.create_machine_description') }}</p>
 
                 <form @submit.prevent="submit" class="mt-6 space-y-6">
                     <MachineGroupFormFields :form="form" />
@@ -63,14 +66,14 @@ function submit(): void {
 
                     <div class="flex items-center gap-3">
                         <button type="submit" class="hover:cursor-pointer btn" :disabled="form.processing">
-                            {{ form.processing ? 'Creating...' : 'Create Machine Group' }}
+                            {{ form.processing ? t('data_management.creating') : t('data_management.create_machine') }}
                         </button>
                         <button
                             type="button"
                             class="btn btn-ghost"
                             @click="router.get('/data-management/machine')"
                         >
-                            Cancel
+                            {{ t('data_management.cancel') }}
                         </button>
                     </div>
                 </form>

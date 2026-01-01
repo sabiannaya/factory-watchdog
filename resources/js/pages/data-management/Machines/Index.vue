@@ -7,17 +7,20 @@ import { Eye, Edit2, Trash2, Search } from 'lucide-vue-next';
 import IconActionButton from '@/components/ui/IconActionButton.vue';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import { useLocalization } from '@/composables/useLocalization';
 
-const breadcrumbs: BreadcrumbItem[] = [
+const { t } = useLocalization();
+
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     {
-        title: 'Data Management',
+        title: t('data_management.data_management'),
         href: '/data-management/production',
     },
     {
-        title: 'Machines',
+        title: t('data_management.machines'),
         href: '/data-management/machine',
     },
-];
+]);
 
 const loading = ref(false);
 
@@ -61,7 +64,7 @@ const goEdit = (id: number | string) => {
 const confirmDelete = (id: number | string) => {
     // simple browser confirm
     // eslint-disable-next-line no-alert
-    if (!window.confirm('Are you sure you want to delete this machine group?')) return;
+    if (!window.confirm(t('data_management.confirm_delete_machine'))) return;
     router.visit(`/data-management/machine/${id}`, { method: 'delete', preserveState: false });
 };
 
@@ -95,17 +98,17 @@ router.on('finish', () => (loading.value = false));
 
 <template>
 
-    <Head title="Machine" />
+    <Head :title="t('data_management.machines')" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="p-4">
             <div class="flex items-center justify-between">
                 <div>
-                    <h2 class="text-2xl font-semibold">Machine</h2>
-                    <p class="text-sm text-muted-foreground">Manage machine groups</p>
+                    <h2 class="text-2xl font-semibold">{{ t('data_management.machines') }}</h2>
+                    <p class="text-sm text-muted-foreground">{{ t('data_management.manage_machines') }}</p>
                 </div>
                 <button class="hover:cursor-pointer btn" @click="router.get('/data-management/machine/create')">
-                    Create Machine Group
+                    {{ t('data_management.create_machine') }}
                 </button>
             </div>
 
@@ -113,7 +116,7 @@ router.on('finish', () => (loading.value = false));
                 <div class="relative">
                     <Search class="absolute left-2 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input v-model="search" :disabled="loading" type="search"
-                        placeholder="Search machine groups..." class="pl-8" />
+                        :placeholder="t('data_management.search_placeholder')" class="pl-8" />
                     <Spinner v-if="loading" class="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 </div>
             </div>
@@ -123,13 +126,13 @@ router.on('finish', () => (loading.value = false));
                     <table class="w-full table-auto border-collapse">
                         <thead>
                             <tr class="text-left">
-                                <th class="px-3 py-2 text-sm font-medium">ID</th>
-                                <th class="px-3 py-2 text-sm font-medium">Name</th>
-                                <th class="px-3 py-2 text-sm font-medium">Total</th>
-                                <th class="px-3 py-2 text-sm font-medium">Active</th>
-                                <th class="px-3 py-2 text-sm font-medium">Inactive</th>
-                                <th class="px-3 py-2 text-sm font-medium">Created</th>
-                                <th class="px-3 py-2 text-sm font-medium">Actions</th>
+                                <th class="px-3 py-2 text-sm font-medium">{{ t('data_management.id') }}</th>
+                                <th class="px-3 py-2 text-sm font-medium">{{ t('data_management.name') }}</th>
+                                <th class="px-3 py-2 text-sm font-medium">{{ t('data_management.total') }}</th>
+                                <th class="px-3 py-2 text-sm font-medium">{{ t('data_management.active') }}</th>
+                                <th class="px-3 py-2 text-sm font-medium">{{ t('data_management.inactive') }}</th>
+                                <th class="px-3 py-2 text-sm font-medium">{{ t('data_management.created') }}</th>
+                                <th class="px-3 py-2 text-sm font-medium">{{ t('data_management.actions') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -142,11 +145,11 @@ router.on('finish', () => (loading.value = false));
                                 <td class="px-3 py-2 text-sm">{{ row.created_at }}</td>
                                 <td class="px-3 py-2 text-sm">
                                     <div class="flex items-center gap-4">
-                                        <IconActionButton :icon="Eye" label="Detail" color="blue"
+                                        <IconActionButton :icon="Eye" :label="t('data_management.detail')" color="blue"
                                             :onClick="() => goDetail(row.machine_group_id)" />
-                                        <IconActionButton :icon="Edit2" label="Edit" color="amber"
+                                        <IconActionButton :icon="Edit2" :label="t('data_management.edit')" color="amber"
                                             :onClick="() => goEdit(row.machine_group_id)" />
-                                        <IconActionButton :icon="Trash2" label="Delete" color="red"
+                                        <IconActionButton :icon="Trash2" :label="t('data_management.delete')" color="red"
                                             :onClick="() => confirmDelete(row.machine_group_id)" />
                                     </div>
                                 </td>
@@ -157,9 +160,9 @@ router.on('finish', () => (loading.value = false));
 
                 <div class="mt-4 flex items-center justify-end gap-2">
                     <button class="hover:cursor-pointer btn" :disabled="!props.machineGroups?.prev_cursor || loading"
-                        @click="goPrev">Previous</button>
+                        @click="goPrev">{{ t('data_management.previous') }}</button>
                     <button class="hover:cursor-pointer btn" :disabled="!props.machineGroups?.next_cursor || loading"
-                        @click="goNext">Next</button>
+                        @click="goNext">{{ t('data_management.next') }}</button>
                 </div>
             </div>
         </div>

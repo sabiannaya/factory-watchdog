@@ -2,7 +2,8 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type ProductItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
+import { useLocalization } from '@/composables/useLocalization';
 import IconActionButton from '@/components/ui/IconActionButton.vue';
 import { Edit2, Trash2, ArrowLeft } from 'lucide-vue-next';
 import AlertDialog from '@/components/ui/alert-dialog/AlertDialog.vue';
@@ -18,15 +19,16 @@ import { useToast } from '@/composables/useToast';
 const props = defineProps<{ product: ProductItem }>();
 
 const { success } = useToast();
+const { t } = useLocalization();
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Data Management', href: '/data-management/production' },
-    { title: 'Products', href: '/data-management/products' },
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+    { title: t('data_management.data_management'), href: '/data-management/production' },
+    { title: t('data_management.products'), href: '/data-management/products' },
     {
         title: props.product.name,
         href: `/data-management/products/${props.product.id}`,
     },
-];
+]);
 
 const showDeleteDialog = ref(false);
 const deleting = ref(false);
@@ -53,7 +55,7 @@ const confirmDelete = () => {
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbs">
-        <Head :title="`Product — ${props.product.name}`" />
+        <Head :title="`${t('data_management.product')} — ${props.product.name}`" />
         <div class="p-4">
             <div class="rounded-xl border border-sidebar-border/70 p-6">
                 <div class="flex items-start justify-between gap-4">
@@ -62,7 +64,7 @@ const confirmDelete = () => {
                             {{ props.product.name }}
                         </h2>
                         <p class="mt-1 text-sm text-muted-foreground">
-                            Product details (Setting Produk)
+                            {{ t('data_management.product_details') }}
                         </p>
                     </div>
 
@@ -76,7 +78,7 @@ const confirmDelete = () => {
                 <div class="mt-6 grid grid-cols-2 gap-6">
                     <div class="rounded-lg border bg-card p-4">
                         <div class="text-sm text-muted-foreground">
-                            Thickness
+                            {{ t('data_management.thickness') }}
                         </div>
                         <div class="mt-2 font-medium">
                             {{ props.product.thickness ?? '-' }}
@@ -84,7 +86,7 @@ const confirmDelete = () => {
                     </div>
 
                     <div class="rounded-lg border bg-card p-4">
-                        <div class="text-sm text-muted-foreground">Ply</div>
+                        <div class="text-sm text-muted-foreground">{{ t('data_management.ply') }}</div>
                         <div class="mt-2 font-medium">
                             {{ props.product.ply ?? '-' }}
                         </div>
@@ -92,7 +94,7 @@ const confirmDelete = () => {
 
                     <div class="rounded-lg border bg-card p-4">
                         <div class="text-sm text-muted-foreground">
-                            Glue Type
+                            {{ t('data_management.glue_type') }}
                         </div>
                         <div class="mt-2 font-medium">
                             {{ props.product.glue_type ?? '-' }}
@@ -100,7 +102,7 @@ const confirmDelete = () => {
                     </div>
 
                     <div class="rounded-lg border bg-card p-4">
-                        <div class="text-sm text-muted-foreground">Qty</div>
+                        <div class="text-sm text-muted-foreground">{{ t('data_management.qty') }}</div>
                         <div class="mt-2 font-medium">
                             {{ props.product.qty }}
                         </div>
@@ -108,7 +110,7 @@ const confirmDelete = () => {
                 </div>
 
                 <div class="mt-6 rounded-lg border bg-card p-4">
-                    <div class="text-sm text-muted-foreground">Notes</div>
+                    <div class="text-sm text-muted-foreground">{{ t('data_management.notes') }}</div>
                     <div class="mt-2">{{ props.product.notes ?? '-' }}</div>
                 </div>
             </div>
@@ -117,15 +119,15 @@ const confirmDelete = () => {
         <AlertDialog :open="showDeleteDialog" @update:open="showDeleteDialog = $event">
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Confirm Delete Product</AlertDialogTitle>
+                    <AlertDialogTitle>{{ t('data_management.confirm_delete_product_title') }}</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Are you sure you want to delete "{{ props.product.name }}"? This action cannot be undone.
+                        {{ t('data_management.confirm_delete_product_description', { name: props.product.name }) }}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <div class="flex justify-end gap-2">
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel>{{ t('data_management.cancel') }}</AlertDialogCancel>
                     <AlertDialogAction @click="confirmDelete" :disabled="deleting" class="bg-red-600 hover:bg-red-700">
-                        Delete
+                        {{ t('data_management.delete') }}
                     </AlertDialogAction>
                 </div>
             </AlertDialogContent>

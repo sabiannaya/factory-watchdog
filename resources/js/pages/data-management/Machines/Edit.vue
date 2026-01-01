@@ -2,10 +2,13 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { type BreadcrumbItem } from '@/types';
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import MachineGroupFormFields from '@/components/machine-group/MachineGroupFormFields.vue';
 import InputConfigEditor from '@/components/machine-group/InputConfigEditor.vue';
 import type { InputConfig } from '@/composables/useInputConfig';
+import { useLocalization } from '@/composables/useLocalization';
+
+const { t } = useLocalization();
 
 const props = defineProps<{ 
     machineGroup: { 
@@ -16,11 +19,11 @@ const props = defineProps<{
     } 
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Data Management', href: '/data-management/production' },
-    { title: 'Machine', href: '/data-management/machine' },
-    { title: props.machineGroup?.name ?? 'Edit', href: window.location.pathname },
-];
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+    { title: t('data_management.data_management'), href: '/data-management/production' },
+    { title: t('data_management.machines'), href: '/data-management/machine' },
+    { title: props.machineGroup?.name ?? t('data_management.edit'), href: window.location.pathname },
+]);
 
 const defaultConfig: InputConfig = {
     type: 'qty_only',
@@ -59,12 +62,12 @@ function submit(): void {
 </script>
 
 <template>
-    <Head :title="`Edit Machine Group — ${props.machineGroup.name}`" />
+    <Head :title="`${t('data_management.edit_machine')} — ${props.machineGroup.name}`" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="p-4">
             <div class="rounded-xl border border-sidebar-border/70 p-6">
-                <h2 class="text-lg font-semibold">Edit Machine Group</h2>
-                <p class="mt-2 text-sm text-muted-foreground">Edit machine group details and input configuration</p>
+                <h2 class="text-lg font-semibold">{{ t('data_management.edit_machine') }}</h2>
+                <p class="mt-2 text-sm text-muted-foreground">{{ t('data_management.edit_machine_description') }}</p>
 
                 <form @submit.prevent="submit" class="mt-6 space-y-6">
                     <MachineGroupFormFields :form="form" />
@@ -79,14 +82,14 @@ function submit(): void {
 
                     <div class="flex items-center gap-3">
                         <button type="submit" class="hover:cursor-pointer btn" :disabled="form.processing">
-                            {{ form.processing ? 'Saving...' : 'Save Changes' }}
+                            {{ form.processing ? t('data_management.saving') : t('data_management.save_changes') }}
                         </button>
                         <button
                             type="button"
                             class="btn btn-ghost"
                             @click="router.get('/data-management/machine')"
                         >
-                            Cancel
+                            {{ t('data_management.cancel') }}
                         </button>
                     </div>
                 </form>

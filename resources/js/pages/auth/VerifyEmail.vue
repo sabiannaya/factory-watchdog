@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import { logout } from '@/routes';
+import { useLocalization } from '@/composables/useLocalization';
 import { router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import {
@@ -18,6 +19,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { send } from '@/routes/verification';
 import { Form, Head } from '@inertiajs/vue3';
+
+const { t } = useLocalization();
 
 defineProps<{
     status?: string;
@@ -38,17 +41,16 @@ const confirmLogout = () => {
 
 <template>
     <AuthLayout
-        title="Verify email"
-        description="Please verify your email address by clicking on the link we just emailed to you."
+        :title="t('auth.verify_title')"
+        :description="t('auth.verify_description')"
     >
-        <Head title="Email verification" />
+        <Head :title="t('auth.verify_head')" />
 
         <div
             v-if="status === 'verification-link-sent'"
             class="mb-4 text-center text-sm font-medium text-green-600"
         >
-            A new verification link has been sent to the email address you
-            provided during registration.
+            {{ t('auth.verification_sent') }}
         </div>
 
         <Form
@@ -58,7 +60,7 @@ const confirmLogout = () => {
         >
             <Button :disabled="processing" variant="secondary">
                 <Spinner v-if="processing" />
-                Resend verification email
+                {{ t('auth.resend_verification') }}
             </Button>
 
             <TextLink
@@ -67,23 +69,23 @@ const confirmLogout = () => {
                 class="mx-auto block text-sm"
                 @click.prevent="handleLogout"
             >
-                Log out
+                {{ t('auth.logout') }}
             </TextLink>
         </Form>
 
         <AlertDialog :open="showLogoutDialog" @update:open="(v) => showLogoutDialog = v">
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Log out</AlertDialogTitle>
+                    <AlertDialogTitle>{{ t('auth.logout') }}</AlertDialogTitle>
                 </AlertDialogHeader>
 
                 <AlertDialogDescription>
-                    Are you sure you want to log out?
+                    {{ t('auth.logout_confirm') }}
                 </AlertDialogDescription>
 
                 <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction @click="confirmLogout">Log out</AlertDialogAction>
+                    <AlertDialogCancel>{{ t('auth.cancel') }}</AlertDialogCancel>
+                    <AlertDialogAction @click="confirmLogout">{{ t('auth.logout') }}</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>

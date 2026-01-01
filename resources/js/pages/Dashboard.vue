@@ -7,10 +7,13 @@ import StatCard from '@/components/StatCard.vue';
 import LineChart from '@/components/charts/LineChart.vue';
 import PieChart from '@/components/charts/PieChart.vue';
 import BarChart from '@/components/charts/BarChart.vue';
+import { useLocalization } from '@/composables/useLocalization';
+
+const { t } = useLocalization();
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Dashboard',
+        title: t('dashboard.title'),
         href: dashboard().url,
     },
 ];
@@ -122,25 +125,25 @@ const todayTrend = computed(() => {
 </script>
 
 <template>
-    <Head title="Dashboard" />
+    <Head :title="t('dashboard.title')" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
             <!-- Quick Stats -->
             <div class="grid gap-4 md:grid-cols-3">
                 <StatCard
-                    title="Total Productions"
+                    :title="t('dashboard.total_productions')"
                     :value="stats.total_productions"
-                    :subtitle="`${stats.active_productions} active`"
+                    :subtitle="`${stats.active_productions} ${t('dashboard.active_label')}`"
                 />
                 <StatCard
-                    title="Machine Groups"
+                    :title="t('dashboard.machine_groups')"
                     :value="stats.total_machine_groups"
                 />
                 <StatCard
-                    title="Today Output"
+                    :title="t('dashboard.today_output')"
                     :value="todayActual"
-                    :subtitle="`vs ${yesterdayActual} yesterday`"
+                    :subtitle="`${t('app.vs')} ${yesterdayActual} ${t('app.yesterday').toLowerCase()}`"
                     :trend="todayTrend.direction"
                     :trendValue="todayTrend.deltaUnitsLabel"
                 />
@@ -149,20 +152,20 @@ const todayTrend = computed(() => {
             <!-- Charts Row (responsive) -->
             <div class="grid gap-4">
                 <div>
-                    <LineChart :data="dailyTrends" title="7-Day Production Trend (Qty Normal)" />
+                    <LineChart :data="dailyTrends" :title="t('dashboard.daily_output_trend')" />
                 </div>
 
                 <div class="grid md:grid-cols-2 gap-4">
                     <div class="flex justify-center">
                         <PieChart 
                             :data="groupDistributionNormalMapped" 
-                            title="Group Qty Normal Output Distribution (24h)"
+                            :title="t('dashboard.normal_distribution')"
                         />
                     </div>
                     <div class="flex justify-center">
                         <PieChart 
                             :data="groupDistributionRejectMapped" 
-                            title="Group Qty Reject Output Distribution (24h)"
+                            :title="t('dashboard.reject_distribution')"
                         />
                     </div>
                 </div>
@@ -172,25 +175,25 @@ const todayTrend = computed(() => {
             <div class="mt-2">
                 <BarChart 
                     :data="productionWeeklyMapped" 
-                    title="Production Output (7d)"
+                    :title="t('dashboard.weekly_production_output')"
                 />
             </div>
 
             <!-- Recent Hourly Logs -->
             <div class="rounded-xl border border-sidebar-border/70 p-6 bg-card">
-                <h3 class="text-lg font-semibold mb-4">Recent Hourly Logs</h3>
+                <h3 class="text-lg font-semibold mb-4">{{ t('dashboard.recent_logs') }}</h3>
                 <div v-if="recentLogs.length === 0" class="text-center text-muted-foreground py-8">
-                    No recent logs available
+                    {{ t('dashboard.no_recent_logs') }}
                 </div>
                 <div v-else class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-sidebar-border/70">
                         <thead>
                             <tr>
-                                <th class="px-4 py-2 text-left text-sm font-medium">Production</th>
-                                <th class="px-4 py-2 text-left text-sm font-medium">Machine Group</th>
-                                <th class="px-4 py-2 text-left text-sm font-medium">Time</th>
-                                <th class="px-4 py-2 text-right text-sm font-medium">Output (Normal)</th>
-                                <th class="px-4 py-2 text-right text-sm font-medium">Output (Reject)</th>
+                                <th class="px-4 py-2 text-left text-sm font-medium">{{ t('dashboard.production') }}</th>
+                                <th class="px-4 py-2 text-left text-sm font-medium">{{ t('dashboard.machine_group') }}</th>
+                                <th class="px-4 py-2 text-left text-sm font-medium">{{ t('dashboard.time') }}</th>
+                                <th class="px-4 py-2 text-right text-sm font-medium">{{ t('dashboard.normal') }}</th>
+                                <th class="px-4 py-2 text-right text-sm font-medium">{{ t('dashboard.reject') }}</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-sidebar-border/70">

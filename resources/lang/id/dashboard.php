@@ -1,0 +1,26 @@
+<?php
+
+return [
+    'title' => 'Dasbor',
+    'total_productions' => 'Total Produksi',
+    'active_label' => 'aktif',
+    'machine_groups' => 'Grup Mesin',
+    'today_output' => 'Output Hari Ini',
+    'vs_yesterday' => 'vs :count kemarin',
+    'daily_output_trend' => 'Tren Output Harian',
+    'last_7_days' => '7 hari terakhir',
+    'output_by_machine_group' => 'Output per Grup Mesin',
+    'normal_distribution' => 'Distribusi Normal',
+    'reject_distribution' => 'Distribusi Reject',
+    'today_distribution' => 'Distribusi hari ini',
+    'weekly_production_output' => 'Output Produksi Mingguan',
+    'by_production_line' => 'Per lini produksi',
+    'recent_logs' => 'Log Terbaru',
+    'latest_entries' => 'Entri terbaru',
+    'production' => 'Produksi',
+    'machine_group' => 'Grup Mesin',
+    'time' => 'Waktu',
+    'normal' => 'Normal',
+    'reject' => 'Reject',
+    'no_recent_logs' => 'Tidak ada log terbaru',
+];

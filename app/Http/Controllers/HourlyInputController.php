@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Exports\HourlyInputExport;
+use App\Exports\HourlyInputImportTemplate;
+use App\Imports\HourlyInputImport;
 use App\Models\DailyTargetValue;
 use App\Models\HourlyLog;
 use App\Models\Production;
@@ -11,6 +13,7 @@ use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;
@@ -676,5 +679,151 @@ class HourlyInputController extends Controller
         return redirect()
             ->route('input.index', $params)
             ->with('success', count($validated['ids']).' hourly inputs deleted successfully.');
+    }
+
+    /**
+     * Download import template Excel file.
+     */
+    public function downloadTemplate()
+    {
+        return Excel::download(new HourlyInputImportTemplate, 'hourly-input-import-template.xlsx');
+    }
+
+    /**
+     * Preview import data with validation.
+     */
+    public function previewImport(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls,csv|max:10240', // 10MB max
+        ]);
+
+        try {
+            $import = new HourlyInputImport;
+            Excel::import($import, $request->file('file'));
+
+            $validatedRows = $import->getValidatedRows();
+            $summary = $import->getSummary();
+
+            // Paginate the results for preview
+            $page = (int) $request->input('page', 1);
+            $perPage = (int) $request->input('per_page', 20);
+            $total = count($validatedRows);
+            $lastPage = (int) ceil($total / $perPage);
+            $offset = ($page - 1) * $perPage;
+
+            $paginatedRows = array_slice($validatedRows, $offset, $perPage);
+
+            return response()->json([
+                'success' => true,
+                'data' => array_values($paginatedRows),
+                'summary' => $summary,
+                'pagination' => [
+                    'current_page' => $page,
+                    'last_page' => $lastPage,
+                    'per_page' => $perPage,
+                    'total' => $total,
+                ],
+                // Store all validated rows temporarily for the actual import
+                'import_data' => $validatedRows,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Import preview failed', ['error' => $e->getMessage(), 'exception' => $e]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to process file: '.$e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * Execute the actual import after preview confirmation.
+     */
+    public function executeImport(Request $request)
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        $request->validate([
+            'rows' => 'required|array|min:1',
+            'rows.*.production_machine_group_id' => 'required|integer|exists:production_machine_groups,production_machine_group_id',
+            'rows.*.recorded_at' => 'required|string',
+            'rows.*.qty_normal' => 'nullable|integer|min:0',
+            'rows.*.qty_reject' => 'nullable|integer|min:0',
+            'rows.*.keterangan' => 'nullable|string|max:500',
+        ]);
+
+        $rows = $request->input('rows');
+        $imported = 0;
+        $skipped = 0;
+        $errors = [];
+
+        DB::beginTransaction();
+
+        try {
+            foreach ($rows as $index => $row) {
+                $pmg = ProductionMachineGroup::find($row['production_machine_group_id']);
+
+                // Verify staff user has access to this production
+                if ($user->isStaff() && ! $user->canAccessProduction($pmg->production_id)) {
+                    $errors[] = [
+                        'row' => $index + 1,
+                        'message' => 'You do not have access to this production.',
+                    ];
+                    $skipped++;
+
+                    continue;
+                }
+
+                // Parse recorded_at
+                $recordedAt = Carbon::parse($row['recorded_at'], 'Asia/Jakarta')
+                    ->setMinute(0)
+                    ->setSecond(0);
+
+                // Check for duplicate
+                $existingEntry = HourlyLog::where('production_machine_group_id', $row['production_machine_group_id'])
+                    ->where('recorded_at', $recordedAt)
+                    ->first();
+
+                if ($existingEntry) {
+                    $errors[] = [
+                        'row' => $index + 1,
+                        'message' => "Duplicate entry at {$recordedAt->format('Y-m-d H:00')}",
+                    ];
+                    $skipped++;
+
+                    continue;
+                }
+
+                HourlyLog::create([
+                    'production_machine_group_id' => $row['production_machine_group_id'],
+                    'recorded_at' => $recordedAt,
+                    'output_qty_normal' => $row['qty_normal'] ?? null,
+                    'output_qty_reject' => $row['qty_reject'] ?? null,
+                    'keterangan' => $row['keterangan'] ?? null,
+                ]);
+
+                $imported++;
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "{$imported} records imported successfully.",
+                'imported' => $imported,
+                'skipped' => $skipped,
+                'errors' => $errors,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Import execution failed', ['error' => $e->getMessage(), 'exception' => $e]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Import failed: '.$e->getMessage(),
+            ], 500);
+        }
     }
 }

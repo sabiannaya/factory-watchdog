@@ -11,21 +11,24 @@ import {
     DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
 import type { InputConfig } from '@/composables/useInputConfig';
+import { useLocalization } from '@/composables/useLocalization';
 
-const breadcrumbs: BreadcrumbItem[] = [
+const { t } = useLocalization();
+
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     {
-        title: 'Data Management',
+        title: t('data_management.data_management'),
         href: '/data-management/production',
     },
     {
-        title: 'Targets',
+        title: t('data_management.targets'),
         href: '/data-management/targets',
     },
     {
-        title: 'Create',
+        title: t('data_management.create'),
         href: window.location.pathname,
     },
-];
+]);
 
 interface MachineGroup {
     production_machine_group_id: number;
@@ -54,9 +57,9 @@ const selectedProductionId = ref<number | null>(null);
 const selectedDate = ref<string>(new Date().toISOString().split('T')[0]);
 
 const selectedProductionLabel = computed(() => {
-    if (!selectedProductionId.value) return '-- Choose Production --';
+    if (!selectedProductionId.value) return `-- ${t('data_management.choose_production')} --`;
     const found = props.productions.find(p => p.production_id === selectedProductionId.value);
-    return found ? found.production_name : '-- Choose Production --';
+    return found ? found.production_name : `-- ${t('data_management.choose_production')} --`;
 });
 
 const selectProduction = (id: number | null) => {
@@ -134,7 +137,7 @@ const form = useForm({
 
 function submit(): void {
     if (!selectedProductionId.value) {
-        alert('Please select a production');
+        alert(t('data_management.please_select_production'));
         return;
     }
 
@@ -159,24 +162,24 @@ function getFieldLabel(fieldName: string): string {
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbs">
-        <Head title="Create Daily Targets" />
+        <Head :title="t('data_management.create_daily_targets')" />
 
         <div class="p-4 space-y-4">
             <div>
-                <h1 class="text-3xl font-bold">Create Daily Targets</h1>
+                <h1 class="text-3xl font-bold">{{ t('data_management.create_daily_targets') }}</h1>
                 <p class="text-muted-foreground dark:text-muted-foreground">
-                    Set target values for all machine groups in a production for a specific date
+                    {{ t('data_management.set_target_values_description') }}
                 </p>
             </div>
 
             <form @submit.prevent="submit" class="space-y-6">
                 <!-- Production and Date Selection -->
                 <div class="rounded-lg border border-sidebar-border/70 dark:border-sidebar-border/70 bg-card dark:bg-card p-6">
-                    <h2 class="text-lg font-semibold mb-4">Production & Date</h2>
+                    <h2 class="text-lg font-semibold mb-4">{{ t('data_management.production_and_date') }}</h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium mb-2">
-                                Select Production <span class="text-red-500">*</span>
+                                {{ t('data_management.select_production') }} <span class="text-red-500">*</span>
                             </label>
                             <DropdownMenu>
                                 <DropdownMenuTrigger :as-child="true">
@@ -187,7 +190,7 @@ function getFieldLabel(fieldName: string): string {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent class="min-w-[12rem]">
                                     <DropdownMenuItem :as-child="true">
-                                        <button class="block w-full text-left px-3 py-2 text-sm" @click="selectProduction(null)">-- Choose Production --</button>
+                                        <button class="block w-full text-left px-3 py-2 text-sm" @click="selectProduction(null)">-- {{ t('data_management.choose_production') }} --</button>
                                     </DropdownMenuItem>
                                     <template v-for="prod in productions" :key="prod.production_id">
                                         <DropdownMenuItem :as-child="true">
@@ -199,7 +202,7 @@ function getFieldLabel(fieldName: string): string {
                         </div>
                         <div>
                             <label class="block text-sm font-medium mb-2">
-                                Target Date <span class="text-red-500">*</span>
+                                {{ t('data_management.target_date') }} <span class="text-red-500">*</span>
                             </label>
                             <input
                                 v-model="selectedDate"
@@ -217,7 +220,7 @@ function getFieldLabel(fieldName: string): string {
                     class="text-center py-12 rounded-lg border border-dashed border-sidebar-border/70 dark:border-sidebar-border/70 bg-muted/20 dark:bg-muted/20"
                 >
                     <p class="text-muted-foreground dark:text-muted-foreground">
-                        Please select a production to configure daily targets
+                        {{ t('data_management.please_select_production_to_configure') }}
                     </p>
                 </div>
 
@@ -240,7 +243,7 @@ function getFieldLabel(fieldName: string): string {
 
                             <div class="flex items-center gap-3">
                                 <span class="text-sm px-3 py-1 rounded-full bg-muted/60 dark:bg-muted/60">
-                                    {{ mg.machine_count }} machines
+                                    {{ mg.machine_count }} {{ t('data_management.machines') }}
                                 </span>
                                 <button type="button" class="btn btn-ghost" @click="toggleGroup(mg.production_machine_group_id)">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform" :class="{'rotate-180': !openGroups[mg.production_machine_group_id]}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -261,40 +264,40 @@ function getFieldLabel(fieldName: string): string {
                                     
                                     <div>
                                         <label class="block text-sm font-medium mb-1.5">
-                                            Target Value
+                                            {{ t('data_management.target_value') }}
                                         </label>
                                         <input
                                             v-model.number="formData[mg.production_machine_group_id][field].target_value"
                                             type="number"
                                             min="0"
-                                            placeholder="Enter target"
+                                            :placeholder="t('data_management.enter_target')"
                                             class="input w-full"
                                         />
                                         <p class="text-xs text-muted-foreground dark:text-muted-foreground mt-1">
-                                            Default: {{ mg.default_targets[field] ?? 'None' }}
+                                            {{ t('data_management.default') }}: {{ mg.default_targets[field] ?? t('data_management.none') }}
                                         </p>
                                     </div>
 
                                     <div>
                                         <label class="block text-sm font-medium mb-1.5">
-                                            Actual Output
+                                            {{ t('data_management.actual_output') }}
                                         </label>
                                         <input
                                             v-model.number="formData[mg.production_machine_group_id][field].actual_value"
                                             type="number"
                                             min="0"
-                                            placeholder="Enter actual"
+                                            :placeholder="t('data_management.enter_actual')"
                                             class="input w-full"
                                         />
                                     </div>
 
                                     <div>
                                         <label class="block text-sm font-medium mb-1.5">
-                                            Notes
+                                            {{ t('data_management.notes') }}
                                         </label>
                                         <textarea
                                             v-model="formData[mg.production_machine_group_id][field].keterangan"
-                                            placeholder="Optional notes"
+                                            :placeholder="t('data_management.optional_notes')"
                                             rows="2"
                                             class="input w-full resize-none"
                                         />
@@ -311,7 +314,7 @@ function getFieldLabel(fieldName: string): string {
                     class="text-center py-12 rounded-lg border border-dashed border-sidebar-border/70 dark:border-sidebar-border/70 bg-muted/20 dark:bg-muted/20"
                 >
                     <p class="text-muted-foreground dark:text-muted-foreground">
-                        No machine groups found for this production
+                        {{ t('data_management.no_machine_groups_found') }}
                     </p>
                 </div>
 
@@ -325,14 +328,14 @@ function getFieldLabel(fieldName: string): string {
                         class="hover:cursor-pointer btn"
                         :disabled="form.processing"
                     >
-                        {{ form.processing ? 'Saving...' : 'Save Daily Targets' }}
+                        {{ form.processing ? t('data_management.saving') : t('data_management.save_daily_targets') }}
                     </button>
                     <button
                         type="button"
                         class="btn btn-ghost"
                         @click="router.get('/data-management/targets')"
                     >
-                        Cancel
+                        {{ t('data_management.cancel') }}
                     </button>
                 </div>
             </form>

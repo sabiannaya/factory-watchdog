@@ -11,11 +11,14 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
+import { useLocalization } from '@/composables/useLocalization';
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Logs', href: '/logs' },
-    { title: 'Group Logs', href: '/logs/group' },
-];
+const { t } = useLocalization();
+
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+    { title: t('logs.title'), href: '/logs' },
+    { title: t('logs.group_logs'), href: '/logs/group' },
+]);
 
 const props = defineProps<{ logs?: { data: any[]; next_page?: string | null; prev_page?: string | null }, meta?: any }>();
 const loading = ref(false);
@@ -119,23 +122,23 @@ router.on('finish', () => (loading.value = false));
 </script>
 
 <template>
-    <Head title="Group Logs" />
+    <Head :title="t('logs.group_logs')" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="p-4 space-y-4">
             <div class="flex items-center justify-between">
                 <div>
-                    <h2 class="text-2xl font-semibold">Group Logs (hourly)</h2>
-                    <p class="text-sm text-muted-foreground">Sums per machine group per hour</p>
+                    <h2 class="text-2xl font-semibold">{{ t('logs.group_logs_title') }}</h2>
+                    <p class="text-sm text-muted-foreground">{{ t('logs.group_logs_description') }}</p>
                 </div>
                 <button @click="exportToExcel" class="btn-secondary flex items-center gap-2">
                     <FileDown class="size-4" />
-                    Export to Excel
+                    {{ t('app.export') }}
                 </button>
             </div>
 
             <div class="flex items-center gap-3 mb-3 flex-wrap">
                 <div class="flex items-center gap-2">
-                    <label class="text-sm font-medium">From</label>
+                    <label class="text-sm font-medium">{{ t('app.from') }}</label>
                     <input type="date" class="input" v-model="dateFrom" :disabled="loading" />
                     <DropdownMenu>
                         <DropdownMenuTrigger :as-child="true">
@@ -152,7 +155,7 @@ router.on('finish', () => (loading.value = false));
                     </DropdownMenu>
                 </div>
                 <div class="flex items-center gap-2">
-                    <label class="text-sm font-medium">To</label>
+                    <label class="text-sm font-medium">{{ t('app.to') }}</label>
                     <input type="date" class="input" v-model="dateTo" :disabled="loading" />
                     <DropdownMenu>
                         <DropdownMenuTrigger :as-child="true">
@@ -168,28 +171,28 @@ router.on('finish', () => (loading.value = false));
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
-                <button class="hover:cursor-pointer btn" @click="onDateFilter" :disabled="loading">Apply</button>
+                <button class="hover:cursor-pointer btn" @click="onDateFilter" :disabled="loading">{{ t('app.apply') }}</button>
             </div>
 
             <DataTable serverMode :data="dataSource" :columns="[
-                { key: 'recorded_hour', label: 'Hour', type: 'string', sortable: true, findable: false },
-                { key: 'production_name', label: 'Production', type: 'string', sortable: true, findable: true },
-                { key: 'machine_group_name', label: 'Machine Group', type: 'string', sortable: true, findable: true },
-                { key: 'total_target', label: 'Target', type: 'number', sortable: true, findable: false },
-                { key: 'total_output', label: 'Output', type: 'number', sortable: true, findable: false },
-                { key: 'variance', label: 'Variance', type: 'number', sortable: false, findable: false },
+                { key: 'recorded_hour', label: t('app.hour'), type: 'string', sortable: true, findable: false },
+                { key: 'production_name', label: t('logs.production'), type: 'string', sortable: true, findable: true },
+                { key: 'machine_group_name', label: t('logs.machine_group'), type: 'string', sortable: true, findable: true },
+                { key: 'total_target', label: t('logs.target_normal'), type: 'number', sortable: true, findable: false },
+                { key: 'total_output', label: t('logs.output_normal'), type: 'number', sortable: true, findable: false },
+                { key: 'variance', label: t('logs.variance'), type: 'number', sortable: false, findable: false },
             ]" :per-page="20" :initial-sort="props.meta?.sort ?? 'recorded_hour'" :initial-direction="props.meta?.direction ?? 'desc'" :loading="loading" @server-search="onServerSearch" @server-sort="onServerSort">
                 <template #cell="{ row, column }">
                     <template v-if="column.key === 'total_output'">
                         <div class="flex flex-col">
                             <span class="font-medium">{{ Number(row.total_output_qty_normal ?? 0).toLocaleString() }}</span>
-                            <span class="text-xs text-red-500">rej: {{ Number(row.total_output_qty_reject ?? 0).toLocaleString() }}</span>
+                            <span class="text-xs text-red-500">{{ t('logs.reject') }}: {{ Number(row.total_output_qty_reject ?? 0).toLocaleString() }}</span>
                         </div>
                     </template>
                     <template v-else-if="column.key === 'total_target'">
                         <div class="flex flex-col">
                             <span class="font-medium">{{ Number(row.total_target_qty_normal ?? 0).toLocaleString() }}</span>
-                            <span class="text-xs text-muted-foreground">rej: {{ Number(row.total_target_qty_reject ?? 0).toLocaleString() }}</span>
+                            <span class="text-xs text-muted-foreground">{{ t('logs.reject') }}: {{ Number(row.total_target_qty_reject ?? 0).toLocaleString() }}</span>
                         </div>
                     </template>
                     <template v-else>
@@ -199,8 +202,8 @@ router.on('finish', () => (loading.value = false));
             </DataTable>
 
             <div class="mt-4 flex items-center justify-end gap-2">
-                <button class="hover:cursor-pointer btn" :disabled="!props.logs?.prev_page || loading" @click="goPrev">Previous</button>
-                <button class="hover:cursor-pointer btn" :disabled="!props.logs?.next_page || loading" @click="goNext">Next</button>
+                <button class="hover:cursor-pointer btn" :disabled="!props.logs?.prev_page || loading" @click="goPrev">{{ t('app.previous') }}</button>
+                <button class="hover:cursor-pointer btn" :disabled="!props.logs?.next_page || loading" @click="goNext">{{ t('app.next') }}</button>
             </div>
         </div>
     </AppLayout>

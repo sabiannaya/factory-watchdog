@@ -21,11 +21,14 @@ import AlertDialogHeader from '@/components/ui/alert-dialog/AlertDialogHeader.vu
 import AlertDialogTitle from '@/components/ui/alert-dialog/AlertDialogTitle.vue';
 import ToastNotifications from '@/components/ToastNotifications.vue';
 import { useToast } from '@/composables/useToast';
+import { useLocalization } from '@/composables/useLocalization';
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Input', href: '/input' },
-    { title: 'Record Input', href: window.location.pathname },
-];
+const { t } = useLocalization();
+
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+    { title: t('input.title'), href: '/input' },
+    { title: t('input.record_input'), href: window.location.pathname },
+]);
 
 interface MachineGroup {
     production_machine_group_id: number;
@@ -171,8 +174,8 @@ const hours = Array.from({ length: 24 }, (_, i) => ({
 }));
 
 const selectedHourLabel = computed(() => hours.find(h => h.value === Number(selectedHour.value))?.label ?? `${String(selectedHour.value).padStart(2,'0')}:00`);
-const selectedProductionLabel = computed(() => props.productions.find(p => p.production_id === selectedProduction.value)?.production_name ?? 'Select Production');
-const selectedMachineGroupLabel = computed(() => machineGroups.value.find(m => m.production_machine_group_id === selectedMachineGroupId.value)?.name ?? 'Select Machine Group');
+const selectedProductionLabel = computed(() => props.productions.find(p => p.production_id === selectedProduction.value)?.production_name ?? t('input.select_production'));
+const selectedMachineGroupLabel = computed(() => machineGroups.value.find(m => m.production_machine_group_id === selectedMachineGroupId.value)?.name ?? t('input.select_machine_group'));
 
 const selectHour = (v: number) => { 
     selectedHour.value = Number(v);
@@ -224,13 +227,13 @@ const hasDuplicateError = computed(() => {
 </script>
 
 <template>
-    <Head title="Record Hourly Input" />
+    <Head :title="t('input.create')" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="p-4 space-y-6">
             <div>
-                <h1 class="text-2xl font-bold">Record Hourly Input</h1>
-                <p class="text-muted-foreground">Record production output for a specific hour</p>
+                <h1 class="text-2xl font-bold">{{ t('input.create') }}</h1>
+                <p class="text-muted-foreground">{{ t('input.description') }}</p>
             </div>
 
             <!-- Duplicate Error Alert (from server) -->
@@ -245,13 +248,13 @@ const hasDuplicateError = computed(() => {
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                     <div>
-                        <p class="font-medium text-amber-800 dark:text-amber-200">Existing Entry Found</p>
+                        <p class="font-medium text-amber-800 dark:text-amber-200">{{ t('input.existing_entry') }}</p>
                         <p class="text-sm text-amber-700 dark:text-amber-300 mt-1">
-                            A record already exists for this machine group at {{ duplicateEntry.recorded_at }}.
+                            {{ t('input.entry_exists', { time: duplicateEntry.recorded_at }) }}
                             <Link :href="`/input/${duplicateEntry.hourly_log_id}/edit`" class="underline font-medium">
-                                Edit existing entry
+                                {{ t('input.edit_existing') }}
                             </Link>
-                            instead?
+                            {{ t('input.instead') }}
                         </p>
                     </div>
                 </div>
@@ -260,16 +263,16 @@ const hasDuplicateError = computed(() => {
             <form @submit.prevent="onSubmit" class="space-y-6">
                 <!-- Selection Section -->
                 <div class="rounded-lg border border-sidebar-border/70 bg-card p-6">
-                    <h2 class="text-lg font-semibold mb-4">Select Production & Time</h2>
+                    <h2 class="text-lg font-semibold mb-4">{{ t('input.select_production_time') }}</h2>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
-                            <label class="block text-sm font-medium mb-2">Date <span class="text-red-500">*</span></label>
+                            <label class="block text-sm font-medium mb-2">{{ t('app.date') }} <span class="text-red-500">*</span></label>
                             <input v-model="selectedDate" type="date" class="input w-full" required />
                         </div>
                         
                         <div>
-                            <label class="block text-sm font-medium mb-2">Hour <span class="text-red-500">*</span></label>
+                            <label class="block text-sm font-medium mb-2">{{ t('app.hour') }} <span class="text-red-500">*</span></label>
                             <DropdownMenu>
                                 <DropdownMenuTrigger :as-child="true">
                                     <button type="button" class="input w-full flex items-center justify-between" required>
@@ -286,7 +289,7 @@ const hasDuplicateError = computed(() => {
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium mb-2">Production <span class="text-red-500">*</span></label>
+                            <label class="block text-sm font-medium mb-2">{{ t('input.production') }} <span class="text-red-500">*</span></label>
                             <DropdownMenu>
                                 <DropdownMenuTrigger :as-child="true">
                                     <button type="button" class="input w-full flex items-center justify-between" required>
@@ -296,7 +299,7 @@ const hasDuplicateError = computed(() => {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent class="w-[var(--reka-dropdown-menu-trigger-width)] max-w-none">
                                     <DropdownMenuItem :as-child="true">
-                                        <button class="block w-full text-left px-3 py-2 text-sm" @click="selectProduction(null)">Select Production</button>
+                                        <button class="block w-full text-left px-3 py-2 text-sm" @click="selectProduction(null)">{{ t('input.select_production') }}</button>
                                     </DropdownMenuItem>
                                     <template v-for="prod in props.productions" :key="prod.production_id">
                                         <DropdownMenuItem :as-child="true">
@@ -308,7 +311,7 @@ const hasDuplicateError = computed(() => {
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium mb-2">Machine Group <span class="text-red-500">*</span></label>
+                            <label class="block text-sm font-medium mb-2">{{ t('input.machine_group') }} <span class="text-red-500">*</span></label>
                             <DropdownMenu>
                                 <DropdownMenuTrigger :as-child="true">
                                     <button type="button" class="input w-full flex items-center justify-between" :disabled="!selectedProduction">
@@ -318,7 +321,7 @@ const hasDuplicateError = computed(() => {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent class="w-[var(--reka-dropdown-menu-trigger-width)] max-w-none">
                                     <DropdownMenuItem :as-child="true">
-                                        <button class="block w-full text-left px-3 py-2 text-sm" @click="selectMachineGroup(null)">Select Machine Group</button>
+                                        <button class="block w-full text-left px-3 py-2 text-sm" @click="selectMachineGroup(null)">{{ t('input.select_machine_group') }}</button>
                                     </DropdownMenuItem>
                                     <template v-for="mg in machineGroups" :key="mg.production_machine_group_id">
                                         <DropdownMenuItem :as-child="true">
@@ -333,20 +336,20 @@ const hasDuplicateError = computed(() => {
 
                 <!-- Input Fields Section -->
                 <div v-if="machineGroup" class="rounded-lg border border-sidebar-border/70 bg-card p-6">
-                    <h2 class="text-lg font-semibold mb-4">Production Output</h2>
+                    <h2 class="text-lg font-semibold mb-4">{{ t('input.production_output') }}</h2>
                     <p class="text-sm text-muted-foreground mb-4">
-                        Input type: <strong>{{ inputConfig?.type ?? 'qty_only' }}</strong>
+                        {{ t('input.input_type') }} <strong>{{ inputConfig?.type ?? 'qty_only' }}</strong>
                     </p>
 
                     <!-- Normal / Reject quantities (shown for qty_only or normal_reject, or when fields include qty_normal/qty_reject) -->
                     <div v-if="showNormalReject" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium mb-2">Normal Quantity <span class="text-red-500">*</span></label>
+                            <label class="block text-sm font-medium mb-2">{{ t('input.normal_qty') }} <span class="text-red-500">*</span></label>
                             <input v-model.number="form.output_qty_normal" type="number" min="0" class="input w-full" required />
                             <p v-if="form.errors.output_qty_normal" class="text-red-500 text-sm mt-1">{{ form.errors.output_qty_normal }}</p>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium mb-2">Reject Quantity</label>
+                            <label class="block text-sm font-medium mb-2">{{ t('input.reject_qty') }}</label>
                             <input v-model.number="form.output_qty_reject" type="number" min="0" class="input w-full" />
                             <p v-if="form.errors.output_qty_reject" class="text-red-500 text-sm mt-1">{{ form.errors.output_qty_reject }}</p>
                         </div>
@@ -354,7 +357,7 @@ const hasDuplicateError = computed(() => {
 
                     <!-- grades type or fields indicate grades (multiple grade inputs) -->
                     <div v-if="showGrades" class="space-y-4 mt-4">
-                        <label class="block text-sm font-medium mb-2">Grades (Multiple)</label>
+                        <label class="block text-sm font-medium mb-2">{{ t('input.grades') }}</label>
                         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                             <template v-if="inputConfig?.grade_types && inputConfig.grade_types.length">
                                 <div v-for="gradeType in inputConfig.grade_types" :key="gradeType">
@@ -374,17 +377,17 @@ const hasDuplicateError = computed(() => {
                     <!-- grade_qty type (select a single grade) -->
                     <div v-if="showGradeSelect" class="space-y-4 mt-4">
                         <div>
-                            <label class="block text-sm font-medium mb-2">Grade (Single) <span class="text-red-500">*</span></label>
+                            <label class="block text-sm font-medium mb-2">{{ t('input.grade') }} <span class="text-red-500">*</span></label>
                             <DropdownMenu>
                                 <DropdownMenuTrigger :as-child="true">
                                     <button type="button" class="input w-full flex items-center justify-between" required>
-                                        <span>{{ form.output_grade ?? 'Select Grade' }}</span>
+                                        <span>{{ form.output_grade ?? t('input.select_grade') }}</span>
                                         <ChevronDown class="ml-2 size-4" />
                                     </button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent class="w-[var(--radix-dropdown-menu-trigger-width)]">
                                     <DropdownMenuItem :as-child="true">
-                                        <button class="block w-full text-left px-3 py-2 text-sm" @click="form.output_grade = null">Select Grade</button>
+                                        <button class="block w-full text-left px-3 py-2 text-sm" @click="form.output_grade = null">{{ t('input.select_grade') }}</button>
                                     </DropdownMenuItem>
                                     <template v-if="inputConfig?.grade_types" v-for="g in inputConfig.grade_types" :key="g">
                                         <DropdownMenuItem :as-child="true">
@@ -399,11 +402,11 @@ const hasDuplicateError = computed(() => {
                     <!-- Additional fields -->
                     <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div v-if="fields.includes('ukuran')">
-                            <label class="block text-sm font-medium mb-2">Ukuran (Size)</label>
+                            <label class="block text-sm font-medium mb-2">{{ t('input.ukuran') }}</label>
                             <input v-model="form.output_ukuran" type="text" class="input w-full" placeholder="e.g., 122x244" />
                         </div>
                         <div>
-                            <label class="block text-sm font-medium mb-2">Notes (Keterangan)</label>
+                            <label class="block text-sm font-medium mb-2">{{ t('input.notes') }}</label>
                             <textarea v-model="form.keterangan" class="input w-full" rows="2" placeholder="Optional notes..."></textarea>
                         </div>
                     </div>
@@ -412,10 +415,10 @@ const hasDuplicateError = computed(() => {
                 <!-- Submit -->
                 <div class="flex items-center gap-3">
                     <button type="submit" class="hover:cursor-pointer btn" :disabled="form.processing || !selectedMachineGroupId">
-                        {{ form.processing ? 'Saving...' : 'Save Input' }}
+                        {{ form.processing ? t('app.saving') : t('app.save') }}
                     </button>
                     <button type="button" class="hover:cursor-pointer btn btn-ghost" @click="router.get('/input')">
-                        Cancel
+                        {{ t('app.cancel') }}
                     </button>
                 </div>
             </form>
@@ -424,15 +427,15 @@ const hasDuplicateError = computed(() => {
         <AlertDialog :open="showConfirmDialog" @update:open="showConfirmDialog = $event">
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Confirm Save Hourly Input</AlertDialogTitle>
+                    <AlertDialogTitle>{{ t('input.confirm_save') }}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Are you sure you want to record the hourly input for
+                            {{ t('app.are_you_sure') }}
                             <strong> {{ selectedProductionLabel }} • {{ selectedMachineGroupLabel }} </strong>
-                            on <strong>{{ selectedDate }}</strong> at <strong>{{ selectedHourLabel }}</strong>?
+                            {{ t('app.date').toLowerCase() }} <strong>{{ selectedDate }}</strong> {{ t('app.hour').toLowerCase() }} <strong>{{ selectedHourLabel }}</strong>?
                         </AlertDialogDescription>
 
                         <div class="mt-4 border-t pt-3">
-                            <h3 class="text-sm font-medium mb-2">Preview</h3>
+                            <h3 class="text-sm font-medium mb-2">{{ t('input.preview') }}</h3>
                             <div class="rounded-lg bg-muted/50 p-3">
                                 <div class="space-y-1 text-sm">
                                     <div v-if="showNormalReject"><span class="font-medium">Normal:</span> {{ form.output_qty_normal ?? 0 }}</div>
@@ -456,9 +459,9 @@ const hasDuplicateError = computed(() => {
                         </div>
                 </AlertDialogHeader>
                 <div class="flex justify-end gap-2">
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel>{{ t('app.cancel') }}</AlertDialogCancel>
                     <AlertDialogAction @click="confirmSubmit" :disabled="submitting" class="hover:cursor-pointer btn">
-                        {{ submitting ? 'Saving...' : 'Save Input' }}
+                        {{ submitting ? t('app.saving') : t('app.save') }}
                     </AlertDialogAction>
                 </div>
             </AlertDialogContent>

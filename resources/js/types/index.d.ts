@@ -24,6 +24,16 @@ export type AppPageProps<
     quote: { message: string; author: string };
     auth: Auth;
     sidebarOpen: boolean;
+    locale: string;
+    translations: {
+        app: Record<string, string>;
+        nav: Record<string, string>;
+        input: Record<string, string>;
+        settings: Record<string, string>;
+        dashboard: Record<string, string>;
+        logs: Record<string, string>;
+        summary: Record<string, string>;
+    };
 };
 
 export interface User {
